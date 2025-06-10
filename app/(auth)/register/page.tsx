@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { OrganizationInsert, UserInsert } from '@/types'
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('')
@@ -35,28 +36,32 @@ export default function RegisterPage() {
 
       if (authData.user) {
         // 2. Crea l'organizzazione
+        const orgData: OrganizationInsert = {
+          name: organizationName,
+          slug: organizationName.toLowerCase().replace(/\s+/g, '-'),
+          email: email,
+        }
+
         const { data: org, error: orgError } = await supabase
           .from('organizations')
-          .insert({
-            name: organizationName,
-            slug: organizationName.toLowerCase().replace(/\s+/g, '-'),
-            email: email,
-          })
+          .insert(orgData)
           .select()
           .single()
 
         if (orgError) throw orgError
 
         // 3. Crea il profilo utente
+        const userData: UserInsert = {
+          id: authData.user.id,
+          email: email,
+          full_name: fullName,
+          organization_id: org.id,
+          role: 'owner'
+        }
+
         const { error: userError } = await supabase
           .from('users')
-          .insert({
-            id: authData.user.id,
-            email: email,
-            full_name: fullName,
-            organization_id: org.id,
-            role: 'owner'
-          })
+          .insert(userData)
 
         if (userError) throw userError
 

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Calendar, Users, Euro, Package, MessageSquare, BarChart3, Settings, LogOut } from 'lucide-react'
+import { UserWithOrganization, BookingWithRelations } from '@/types'
 
 async function getStats(organizationId: string) {
   const supabase = await createClient()
@@ -72,8 +73,11 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
+  // Type assertion con il nostro tipo custom
+  const typedUserData = userData as UserWithOrganization
+
   // Get stats
-  const stats = await getStats(userData.organization_id)
+  const stats = await getStats(typedUserData.organization_id!)
 
   // Get recent bookings
   const { data: recentBookings } = await supabase
@@ -83,9 +87,11 @@ export default async function DashboardPage() {
       client:clients(full_name),
       service:services(name)
     `)
-    .eq('organization_id', userData.organization_id)
+    .eq('organization_id', typedUserData.organization_id!)
     .order('created_at', { ascending: false })
     .limit(5)
+
+  const typedBookings = recentBookings as BookingWithRelations[] | null
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -93,7 +99,7 @@ export default async function DashboardPage() {
       <aside className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg">
         <div className="p-6">
           <h2 className="text-2xl font-bold text-gray-800">Beauty AI</h2>
-          <p className="text-sm text-gray-600">{userData.organization?.name}</p>
+          <p className="text-sm text-gray-600">{typedUserData.organization?.name}</p>
         </div>
         
         <nav className="mt-8">
@@ -138,7 +144,7 @@ export default async function DashboardPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
-            Ciao {userData.full_name}! 👋
+            Ciao {typedUserData.full_name}! 👋
           </h1>
           <p className="text-gray-600 mt-2">
             Ecco un riepilogo della tua attività di oggi
@@ -204,9 +210,9 @@ export default async function DashboardPage() {
               <h2 className="text-lg font-semibold text-gray-900">Prenotazioni Recenti</h2>
             </div>
             <div className="p-6">
-              {recentBookings && recentBookings.length > 0 ? (
+              {typedBookings && typedBookings.length > 0 ? (
                 <div className="space-y-4">
-                  {recentBookings.map((booking: any) => (
+                  {typedBookings.map((booking) => (
                     <div key={booking.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
                       <div>
                         <p className="font-medium text-gray-900">{booking.client?.full_name}</p>
@@ -247,7 +253,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Plan Info */}
-        {userData.organization?.plan_type === 'free' && (
+        {typedUserData.organization?.plan_type === 'free' && (
           <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
             <div className="flex items-start">
               <div className="flex-shrink-0">
@@ -257,7 +263,7 @@ export default async function DashboardPage() {
               </div>
               <div className="ml-3 flex-1">
                 <h3 className="text-sm font-medium text-yellow-800">
-                  Piano Gratuito - {userData.organization?.client_count || 0}/50 clienti
+                  Piano Gratuito - {typedUserData.organization?.client_count || 0}/50 clienti
                 </h3>
                 <p className="mt-2 text-sm text-yellow-700">
                   Stai utilizzando il piano gratuito. Passa a Premium per clienti illimitati e funzionalità avanzate.
