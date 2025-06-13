@@ -265,6 +265,7 @@ export type Database = {
           updated_at: string | null
           visit_count: number | null
           whatsapp_phone: string | null
+          deleted_at: string | null
         }
         Insert: {
           birth_date?: string | null
@@ -281,6 +282,7 @@ export type Database = {
           updated_at?: string | null
           visit_count?: number | null
           whatsapp_phone?: string | null
+          deleted_at?: string | null
         }
         Update: {
           birth_date?: string | null
@@ -297,6 +299,7 @@ export type Database = {
           updated_at?: string | null
           visit_count?: number | null
           whatsapp_phone?: string | null
+          deleted_at?: string | null
         }
         Relationships: [
           {
@@ -455,39 +458,42 @@ export type Database = {
       }
       services: {
         Row: {
-          category: string | null
-          created_at: string | null
-          description: string | null
-          duration_minutes: number
           id: string
-          is_active: boolean | null
-          name: string
           organization_id: string | null
+          name: string
+          description: string | null
+          category: string | null
           price: number
+          duration_minutes: number
+          is_active: boolean | null
+          deleted_at: string | null
+          created_at: string | null
           updated_at: string | null
         }
         Insert: {
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          duration_minutes: number
           id?: string
-          is_active?: boolean | null
-          name: string
           organization_id?: string | null
+          name: string
+          description?: string | null
+          category?: string | null
           price: number
+          duration_minutes: number
+          is_active?: boolean | null
+          deleted_at?: string | null
+          created_at?: string | null
           updated_at?: string | null
         }
         Update: {
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          duration_minutes?: number
           id?: string
-          is_active?: boolean | null
-          name?: string
           organization_id?: string | null
+          name?: string
+          description?: string | null
+          category?: string | null
           price?: number
+          duration_minutes?: number
+          is_active?: boolean | null
+          deleted_at?: string | null
+          created_at?: string | null
           updated_at?: string | null
         }
         Relationships: [

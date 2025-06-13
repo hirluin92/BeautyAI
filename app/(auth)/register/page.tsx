@@ -2,8 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { OrganizationInsert, UserInsert } from '@/types'
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('')
@@ -13,7 +11,6 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const supabase = createClient()
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,54 +18,47 @@ export default function RegisterPage() {
     setError(null)
 
     try {
-      // 1. Registra l'utente con Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          }
-        }
+      // Chiama l'API route server-side
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          fullName,
+          organizationName
+        })
       })
 
-      if (authError) throw authError
+      const data = await response.json()
 
-      if (authData.user) {
-        // 2. Crea l'organizzazione
-        const orgData: OrganizationInsert = {
-          name: organizationName,
-          slug: organizationName.toLowerCase().replace(/\s+/g, '-'),
-          email: email,
-        }
-
-        const { data: org, error: orgError } = await supabase
-          .from('organizations')
-          .insert(orgData)
-          .select()
-          .single()
-
-        if (orgError) throw orgError
-
-        // 3. Crea il profilo utente
-        const userData: UserInsert = {
-          id: authData.user.id,
-          email: email,
-          full_name: fullName,
-          organization_id: org.id,
-          role: 'owner'
-        }
-
-        const { error: userError } = await supabase
-          .from('users')
-          .insert(userData)
-
-        if (userError) throw userError
-
-        // Redirect al dashboard
-        router.push('/dashboard')
+      if (!response.ok) {
+        throw new Error(data.error || 'Errore durante la registrazione')
       }
+
+      // Successo! Ora fai il login automatico
+      const loginResponse = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password
+        })
+      })
+
+      if (loginResponse.ok) {
+        router.push('/dashboard')
+      } else {
+        // Se il login fallisce, manda alla pagina di login
+        router.push('/login?registered=true')
+      }
+      
     } catch (error: any) {
+      console.error('Registration error:', error)
       setError(error.message || 'Errore durante la registrazione')
     } finally {
       setLoading(false)
@@ -99,12 +89,11 @@ export default function RegisterPage() {
               </label>
               <input
                 id="organizationName"
-                name="organizationName"
                 type="text"
                 required
                 value={organizationName}
                 onChange={(e) => setOrganizationName(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="Beauty Center Milano"
               />
             </div>
@@ -114,13 +103,12 @@ export default function RegisterPage() {
               </label>
               <input
                 id="fullName"
-                name="fullName"
                 type="text"
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Maria Rossi"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Mario Rossi"
               />
             </div>
             <div>
@@ -129,14 +117,13 @@ export default function RegisterPage() {
               </label>
               <input
                 id="email"
-                name="email"
                 type="email"
                 autoComplete="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="maria@beautycenter.it"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="mario@beautycentermilano.it"
               />
             </div>
             <div>
@@ -145,15 +132,16 @@ export default function RegisterPage() {
               </label>
               <input
                 id="password"
-                name="password"
                 type="password"
                 autoComplete="new-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Minimo 8 caratteri"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="••••••••"
+                minLength={6}
               />
+              <p className="mt-1 text-xs text-gray-500">Minimo 6 caratteri</p>
             </div>
           </div>
 
@@ -161,16 +149,19 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Registrazione in corso...' : 'Registrati'}
             </button>
           </div>
 
           <div className="text-center">
-            <a href="/login" className="text-sm text-indigo-600 hover:text-indigo-500">
-              Hai già un account? Accedi
-            </a>
+            <span className="text-sm text-gray-600">
+              Hai già un account?{' '}
+              <a href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+                Accedi
+              </a>
+            </span>
           </div>
         </form>
       </div>

@@ -1,0 +1,399 @@
+// AI Chat System Design with OpenAI Function Calling
+
+import { ChatCompletionCreateParams } from 'openai/resources/chat';
+
+// System Prompts
+export const SYSTEM_PROMPTS = {
+  assistant: `Sei l'assistente virtuale di {organizationName}, un centro estetico.
+Il tuo compito è aiutare i clienti a:
+- Prenotare appuntamenti
+- Controllare disponibilità
+- Cancellare o modificare prenotazioni
+- Fornire informazioni sui servizi
+- Rispondere a domande generali
+
+Regole:
+1. Sii sempre cortese e professionale
+2. Usa un tono amichevole ma rispettoso
+3. Conferma sempre i dettagli prima di procedere con prenotazioni
+4. Se non sei sicuro, chiedi chiarimenti
+5. Non fornire consigli medici
+6. Gestisci una conversazione alla volta in modo chiaro
+
+Informazioni del centro:
+- Nome: {organizationName}
+- Indirizzo: {address}
+- Orari: {workingHours}
+- Servizi disponibili: {services}`,
+
+  booking_context: `Stai gestendo una prenotazione. Raccogli le seguenti informazioni:
+1. Servizio desiderato
+2. Data preferita
+3. Orario preferito
+4. Conferma dei dati del cliente`,
+};
+
+// Function Definitions for OpenAI
+export const AI_FUNCTIONS: ChatCompletionCreateParams.Function[] = [
+  {
+    name: 'check_availability',
+    description: 'Controlla la disponibilità per un servizio in una data specifica',
+    parameters: {
+      type: 'object',
+      properties: {
+        service_id: {
+          type: 'string',
+          description: 'ID del servizio richiesto',
+        },
+        date: {
+          type: 'string',
+          description: 'Data richiesta in formato YYYY-MM-DD',
+        },
+        preferred_time: {
+          type: 'string',
+          description: 'Orario preferito in formato HH:MM (opzionale)',
+        },
+      },
+      required: ['service_id', 'date'],
+    },
+  },
+  {
+    name: 'book_appointment',
+    description: 'Crea una nuova prenotazione',
+    parameters: {
+      type: 'object',
+      properties: {
+        client_phone: {
+          type: 'string',
+          description: 'Numero di telefono del cliente',
+        },
+        service_id: {
+          type: 'string',
+          description: 'ID del servizio',
+        },
+        datetime: {
+          type: 'string',
+          description: 'Data e ora in formato ISO 8601',
+        },
+        notes: {
+          type: 'string',
+          description: 'Note aggiuntive (opzionale)',
+        },
+      },
+      required: ['client_phone', 'service_id', 'datetime'],
+    },
+  },
+  {
+    name: 'cancel_appointment',
+    description: 'Cancella una prenotazione esistente',
+    parameters: {
+      type: 'object',
+      properties: {
+        booking_id: {
+          type: 'string',
+          description: 'ID della prenotazione da cancellare',
+        },
+        reason: {
+          type: 'string',
+          description: 'Motivo della cancellazione',
+        },
+      },
+      required: ['booking_id'],
+    },
+  },
+  {
+    name: 'get_client_bookings',
+    description: 'Ottieni le prenotazioni di un cliente',
+    parameters: {
+      type: 'object',
+      properties: {
+        client_phone: {
+          type: 'string',
+          description: 'Numero di telefono del cliente',
+        },
+        status: {
+          type: 'string',
+          enum: ['upcoming', 'past', 'all'],
+          description: 'Filtra per stato delle prenotazioni',
+        },
+      },
+      required: ['client_phone'],
+    },
+  },
+  {
+    name: 'get_services',
+    description: 'Ottieni la lista dei servizi disponibili',
+    parameters: {
+      type: 'object',
+      properties: {
+        category: {
+          type: 'string',
+          description: 'Categoria di servizi (opzionale)',
+        },
+      },
+    },
+  },
+  {
+    name: 'get_service_info',
+    description: 'Ottieni informazioni dettagliate su un servizio',
+    parameters: {
+      type: 'object',
+      properties: {
+        service_name: {
+          type: 'string',
+          description: 'Nome o parte del nome del servizio',
+        },
+      },
+      required: ['service_name'],
+    },
+  },
+];
+
+// Conversation Handler
+export class ConversationHandler {
+  private organizationId: string;
+  private sessionId: string;
+  private context: ConversationContext;
+
+  constructor(organizationId: string, sessionId: string) {
+    this.organizationId = organizationId;
+    this.sessionId = sessionId;
+    this.context = {
+      state: 'idle',
+      bookingData: {},
+      messageHistory: [],
+    };
+  }
+
+  async processMessage(message: WhatsAppMessage): Promise<AIResponse> {
+    // Add message to history
+    this.context.messageHistory.push({
+      role: 'user',
+      content: message.text || '',
+      timestamp: new Date(),
+    });
+
+    // Prepare OpenAI request
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4-turbo-preview',
+      messages: [
+        {
+          role: 'system',
+          content: this.buildSystemPrompt(),
+        },
+        ...this.buildMessageHistory(),
+        {
+          role: 'user',
+          content: message.text || '',
+        },
+      ],
+      functions: AI_FUNCTIONS,
+      function_call: 'auto',
+      temperature: 0.7,
+      max_tokens: 500,
+    });
+
+    // Handle function calls
+    if (completion.choices[0].message.function_call) {
+      const functionResponse = await this.executeFunctionCall(
+        completion.choices[0].message.function_call
+      );
+      
+      // Get final response after function execution
+      const finalCompletion = await this.getFinalResponse(
+        completion.choices[0].message,
+        functionResponse
+      );
+      
+      return this.formatResponse(finalCompletion);
+    }
+
+    // Return direct response
+    return this.formatResponse(completion.choices[0].message.content || '');
+  }
+
+  private async executeFunctionCall(functionCall: any): Promise<any> {
+    const { name, arguments: args } = functionCall;
+    const parsedArgs = JSON.parse(args);
+
+    switch (name) {
+      case 'check_availability':
+        return await this.checkAvailability(parsedArgs);
+      case 'book_appointment':
+        return await this.bookAppointment(parsedArgs);
+      case 'cancel_appointment':
+        return await this.cancelAppointment(parsedArgs);
+      case 'get_client_bookings':
+        return await this.getClientBookings(parsedArgs);
+      case 'get_services':
+        return await this.getServices(parsedArgs);
+      case 'get_service_info':
+        return await this.getServiceInfo(parsedArgs);
+      default:
+        throw new Error(`Unknown function: ${name}`);
+    }
+  }
+
+  private formatResponse(content: string): AIResponse {
+    // Check if we need quick replies or buttons
+    const quickReplies = this.getQuickReplies();
+    
+    return {
+      text: content,
+      quickReplies,
+      buttons: this.context.state === 'confirming_booking' ? [
+        { id: 'confirm', title: 'Conferma ✅' },
+        { id: 'cancel', title: 'Annulla ❌' },
+      ] : undefined,
+    };
+  }
+
+  private getQuickReplies(): string[] {
+    if (this.context.state === 'idle') {
+      return [
+        '📅 Prenota appuntamento',
+        '❓ Info servizi',
+        '📋 Le mie prenotazioni',
+        '📞 Contatti',
+      ];
+    }
+    return [];
+  }
+}
+
+// Types
+interface ConversationContext {
+  state: 'idle' | 'collecting_service' | 'collecting_date' | 'collecting_time' | 'confirming_booking';
+  bookingData: Partial<{
+    serviceId: string;
+    date: string;
+    time: string;
+    clientPhone: string;
+  }>;
+  messageHistory: Array<{
+    role: 'user' | 'assistant';
+    content: string;
+    timestamp: Date;
+  }>;
+}
+
+interface WhatsAppMessage {
+  from: string;
+  text?: string;
+  type: 'text' | 'interactive' | 'button' | 'location' | 'image';
+  timestamp: number;
+}
+
+interface AIResponse {
+  text: string;
+  quickReplies?: string[];
+  buttons?: Array<{
+    id: string;
+    title: string;
+  }>;
+  mediaUrl?: string;
+}
+
+// Message Templates for WhatsApp
+export const MESSAGE_TEMPLATES = {
+  welcome: `Ciao! 👋 Sono l'assistente virtuale di {organizationName}.
+Come posso aiutarti oggi?`,
+
+  booking_confirmed: `✅ Prenotazione confermata!
+
+📅 Data: {date}
+⏰ Ora: {time}
+💆 Servizio: {service}
+💰 Prezzo: €{price}
+
+Ti invieremo un promemoria 24 ore prima dell'appuntamento.
+Per cancellare o modificare, scrivi qui in qualsiasi momento.`,
+
+  availability_response: `📅 Ecco gli orari disponibili per {service} il {date}:
+
+{availableSlots}
+
+Quale preferisci?`,
+
+  no_availability: `😔 Mi dispiace, non ci sono slot disponibili per {service} il {date}.
+
+Vuoi provare con un'altra data? Ecco i prossimi giorni con disponibilità:
+{alternativeDates}`,
+
+  error_generic: `❌ Si è verificato un errore. Per favore riprova o contattaci al {phone}.`,
+};
+
+// Integration with WhatsApp Business API
+export class WhatsAppIntegration {
+  private accessToken: string;
+  private phoneNumberId: string;
+
+  constructor(accessToken: string, phoneNumberId: string) {
+    this.accessToken = accessToken;
+    this.phoneNumberId = phoneNumberId;
+  }
+
+  async sendMessage(to: string, message: AIResponse): Promise<void> {
+    const payload = this.buildMessagePayload(to, message);
+    
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/${this.phoneNumberId}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`WhatsApp API error: ${response.statusText}`);
+    }
+  }
+
+  private buildMessagePayload(to: string, message: AIResponse): any {
+    const basePayload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: to,
+    };
+
+    if (message.buttons) {
+      return {
+        ...basePayload,
+        type: 'interactive',
+        interactive: {
+          type: 'button',
+          body: { text: message.text },
+          action: {
+            buttons: message.buttons.map(btn => ({
+              type: 'reply',
+              reply: {
+                id: btn.id,
+                title: btn.title,
+              },
+            })),
+          },
+        },
+      };
+    }
+
+    if (message.quickReplies) {
+      return {
+        ...basePayload,
+        type: 'text',
+        text: {
+          body: message.text + '\n\n' + message.quickReplies.join('\n'),
+        },
+      };
+    }
+
+    return {
+      ...basePayload,
+      type: 'text',
+      text: { body: message.text },
+    };
+  }
+}

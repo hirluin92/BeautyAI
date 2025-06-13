@@ -1,0 +1,224 @@
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
+import { Service, UserWithOrganization } from '@/types'
+import ServicesSearch from '@/components/services/services-search'
+import ServicesTable from '@/components/services/services-table'
+
+interface SearchParams {
+  search?: string
+  category?: string
+  status?: 'active' | 'inactive' | 'all'
+  page?: string
+}
+
+interface ServicesPageProps {
+  searchParams: SearchParams
+}
+
+export default async function ServicesPage({ searchParams }: ServicesPageProps) {
+  const supabase = await createClient()
+  
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) {
+    redirect('/login')
+  }
+
+  // Get user data with organization
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('*, organization:organizations(*)')
+    .eq('id', user.id)
+    .single()
+
+  if (userError || !userData) {
+    redirect('/login')
+  }
+
+  const typedUserData = userData as UserWithOrganization
+
+  // Pagination
+  const page = parseInt(searchParams.page || '1')
+  const perPage = 10
+  const from = (page - 1) * perPage
+  const to = from + perPage - 1
+
+  // Build query
+  let query = supabase
+    .from('services')
+    .select('*', { count: 'exact' })
+    .eq('organization_id', typedUserData.organization_id!)
+    .order('name', { ascending: true })
+
+  // Apply filters
+  if (searchParams.search) {
+    query = query.or(`name.ilike.%${searchParams.search}%,description.ilike.%${searchParams.search}%`)
+  }
+
+  if (searchParams.category) {
+    query = query.eq('category', searchParams.category)
+  }
+
+  if (searchParams.status && searchParams.status !== 'all') {
+    query = query.eq('is_active', searchParams.status === 'active')
+  }
+
+  // Execute query with pagination
+  const { data: services, error, count } = await query.range(from, to)
+
+  if (error) {
+    console.error('Error fetching services:', error)
+  }
+
+  const typedServices = services as Service[] || []
+  const totalPages = Math.ceil((count || 0) / perPage)
+
+  // Get unique categories for filter
+  const { data: allServices } = await supabase
+    .from('services')
+    .select('category')
+    .eq('organization_id', typedUserData.organization_id!)
+    .not('category', 'is', null)
+
+  const categories = [...new Set(allServices?.map(s => s.category).filter(Boolean) || [])]
+
+  // Calculate stats
+  const totalServices = count || 0
+  const activeServices = typedServices.filter(s => s.is_active).length
+  const totalValue = typedServices.reduce((sum, s) => sum + (s.price || 0), 0)
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Sidebar */}
+      <aside className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg">
+        <div className="p-6">
+          <h2 className="text-2xl font-bold text-gray-800">Beauty AI</h2>
+          <p className="text-sm text-gray-600">{typedUserData.organization?.name}</p>
+        </div>
+        
+        <nav className="mt-8">
+          <Link href="/dashboard" className="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50">
+            Dashboard
+          </Link>
+          <Link href="/calendar" className="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50">
+            Calendario
+          </Link>
+          <Link href="/clients" className="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50">
+            Clienti
+          </Link>
+          <Link href="/services" className="flex items-center px-6 py-3 bg-indigo-50 text-indigo-700 border-r-4 border-indigo-700">
+            <span className="mr-3">💅</span>
+            Servizi
+          </Link>
+          <Link href="/chat" className="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50">
+            Chat WhatsApp
+          </Link>
+          <Link href="/settings" className="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50">
+            Impostazioni
+          </Link>
+        </nav>
+
+        <div className="absolute bottom-0 w-full p-6">
+          <form action="/api/auth/logout" method="POST">
+            <button type="submit" className="flex items-center text-gray-700 hover:text-red-600 w-full">
+              <span className="mr-3">🚪</span>
+              Esci
+            </button>
+          </form>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="ml-64 p-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Servizi</h1>
+              <p className="text-gray-600 mt-2">Gestisci i servizi del tuo salone</p>
+            </div>
+            <Link
+              href="/services/new"
+              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Nuovo Servizio
+            </Link>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow">
+            <p className="text-sm font-medium text-gray-600">Servizi Totali</p>
+            <p className="text-2xl font-bold text-gray-900 mt-2">{totalServices}</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <p className="text-sm font-medium text-gray-600">Servizi Attivi</p>
+            <p className="text-2xl font-bold text-green-600 mt-2">{activeServices}</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <p className="text-sm font-medium text-gray-600">Categorie</p>
+            <p className="text-2xl font-bold text-indigo-600 mt-2">{categories.length}</p>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <p className="text-sm font-medium text-gray-600">Valore Totale</p>
+            <p className="text-2xl font-bold text-gray-900 mt-2">€{totalValue.toFixed(2)}</p>
+          </div>
+        </div>
+
+        {/* Search and Filters */}
+        <ServicesSearch 
+          categories={categories}
+          defaultSearch={searchParams.search}
+          defaultCategory={searchParams.category}
+          defaultStatus={searchParams.status}
+        />
+
+        {/* Services Table */}
+        <ServicesTable services={typedServices} />
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-8 flex justify-center">
+            <nav className="flex space-x-2">
+              {page > 1 && (
+                <Link
+                  href={`/services?${new URLSearchParams({ ...searchParams, page: (page - 1).toString() })}`}
+                  className="px-3 py-2 text-gray-700 bg-white border rounded-md hover:bg-gray-50"
+                >
+                  Precedente
+                </Link>
+              )}
+              
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <Link
+                  key={pageNum}
+                  href={`/services?${new URLSearchParams({ ...searchParams, page: pageNum.toString() })}`}
+                  className={`px-3 py-2 border rounded-md ${
+                    pageNum === page
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-gray-700 bg-white hover:bg-gray-50'
+                  }`}
+                >
+                  {pageNum}
+                </Link>
+              ))}
+              
+              {page < totalPages && (
+                <Link
+                  href={`/services?${new URLSearchParams({ ...searchParams, page: (page + 1).toString() })}`}
+                  className="px-3 py-2 text-gray-700 bg-white border rounded-md hover:bg-gray-50"
+                >
+                  Successivo
+                </Link>
+              )}
+            </nav>
+          </div>
+        )}
+      </main>
+    </div>
+  )
+}

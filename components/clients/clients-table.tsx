@@ -1,17 +1,36 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Phone, Mail, Calendar, Euro, MoreHorizontal, Edit, Trash2, MessageSquare } from 'lucide-react'
 import { Client } from '@/types'
 import DeleteConfirmationModal from '@/components/ui/delete-confirmation-modal'
+import ReactDOM from 'react-dom'
 
 interface ClientsTableProps {
   clients: Client[]
   currentPage: number
   totalPages: number
   totalCount: number
+}
+
+function DropdownMenu({ isOpen, anchorRef, children }: { isOpen: boolean, anchorRef: React.RefObject<HTMLButtonElement | null>, children: React.ReactNode }) {
+  if (!isOpen || !anchorRef.current) return null;
+  const rect = anchorRef.current.getBoundingClientRect();
+  const style: React.CSSProperties = {
+    position: 'fixed',
+    top: rect.bottom + 8,
+    left: rect.left,
+    zIndex: 9999,
+    minWidth: rect.width,
+  };
+  return ReactDOM.createPortal(
+    <div style={style} className="bg-white rounded-md shadow-lg z-50 border">
+      {children}
+    </div>,
+    document.body
+  );
 }
 
 export default function ClientsTable({ 
@@ -190,142 +209,124 @@ export default function ClientsTable({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {clients.map((client) => (
-              <tr key={client.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4">
-                  <input
-                    type="checkbox"
-                    checked={selectedClients.includes(client.id)}
-                    onChange={(e) => handleSelectClient(client.id, e.target.checked)}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-10 w-10">
-                      <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                        <span className="text-indigo-600 font-medium text-sm">
-                          {client.full_name.charAt(0).toUpperCase()}
-                        </span>
+            {clients.map((client) => {
+              const btnRef = useRef<HTMLButtonElement | null>(null);
+              return (
+                <tr key={client.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedClients.includes(client.id)}
+                      onChange={(e) => handleSelectClient(client.id, e.target.checked)}
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 h-10 w-10">
+                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                          <span className="text-indigo-600 font-medium text-sm">
+                            {client.full_name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <Link 
+                          href={`/clients/${client.id}`}
+                          className="text-sm font-medium text-gray-900 hover:text-indigo-600"
+                        >
+                          {client.full_name}
+                        </Link>
+                        {client.birth_date && (
+                          <div className="text-sm text-gray-500">
+                            <Calendar className="w-3 h-3 inline mr-1" />
+                            {formatDate(client.birth_date)}
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div className="ml-4">
-                      <Link 
-                        href={`/clients/${client.id}`}
-                        className="text-sm font-medium text-gray-900 hover:text-indigo-600"
-                      >
-                        {client.full_name}
-                      </Link>
-                      {client.birth_date && (
-                        <div className="text-sm text-gray-500">
-                          <Calendar className="w-3 h-3 inline mr-1" />
-                          {formatDate(client.birth_date)}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center text-sm text-gray-900">
+                        <Phone className="w-3 h-3 mr-2 text-gray-400" />
+                        <a href={`tel:${client.phone}`} className="hover:text-indigo-600">
+                          {formatPhone(client.phone)}
+                        </a>
+                      </div>
+                      {client.email && (
+                        <div className="flex items-center text-sm text-gray-500">
+                          <Mail className="w-3 h-3 mr-2 text-gray-400" />
+                          <a href={`mailto:${client.email}`} className="hover:text-indigo-600">
+                            {client.email}
+                          </a>
+                        </div>
+                      )}
+                      {client.whatsapp_phone && (
+                        <div className="flex items-center text-sm text-gray-500">
+                          <MessageSquare className="w-3 h-3 mr-2 text-gray-400" />
+                          <span>WhatsApp</span>
                         </div>
                       )}
                     </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center text-sm text-gray-900">
-                      <Phone className="w-3 h-3 mr-2 text-gray-400" />
-                      <a href={`tel:${client.phone}`} className="hover:text-indigo-600">
-                        {formatPhone(client.phone)}
-                      </a>
-                    </div>
-                    {client.email && (
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Mail className="w-3 h-3 mr-2 text-gray-400" />
-                        <a href={`mailto:${client.email}`} className="hover:text-indigo-600">
-                          {client.email}
-                        </a>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center text-sm text-gray-900">
+                        <span className="font-medium">{client.visit_count || 0}</span>
+                        <span className="text-gray-500 ml-1">visite</span>
                       </div>
-                    )}
-                    {client.whatsapp_phone && (
                       <div className="flex items-center text-sm text-gray-500">
-                        <MessageSquare className="w-3 h-3 mr-2 text-gray-400" />
-                        <span>WhatsApp</span>
+                        <Euro className="w-3 h-3 mr-1" />
+                        {client.total_spent ? `€${Number(client.total_spent).toFixed(2)}` : '€0.00'}
                       </div>
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center text-sm text-gray-900">
-                      <span className="font-medium">{client.visit_count || 0}</span>
-                      <span className="text-gray-500 ml-1">visite</span>
                     </div>
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Euro className="w-3 h-3 mr-1" />
-                      {client.total_spent ? `€${Number(client.total_spent).toFixed(2)}` : '€0.00'}
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex flex-wrap gap-1">
-                    {client.tags && client.tags.length > 0 ? (
-                      client.tags.slice(0, 2).map((tag, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800"
-                        >
-                          {tag}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-wrap gap-1">
+                      {client.tags && client.tags.length > 0 ? (
+                        client.tags.slice(0, 2).map((tag, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800"
+                          >
+                            {tag}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-sm text-gray-400">Nessun tag</span>
+                      )}
+                      {client.tags && client.tags.length > 2 && (
+                        <span className="text-xs text-gray-500">
+                          +{client.tags.length - 2}
                         </span>
-                      ))
-                    ) : (
-                      <span className="text-sm text-gray-400">Nessun tag</span>
-                    )}
-                    {client.tags && client.tags.length > 2 && (
-                      <span className="text-xs text-gray-500">
-                        +{client.tags.length - 2}
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {client.last_visit_at 
-                    ? formatDate(client.last_visit_at)
-                    : 'Mai'
-                  }
-                </td>
-                <td className="px-6 py-4 relative">
-                  <button
-                    onClick={() => setShowDropdown(showDropdown === client.id ? null : client.id)}
-                    className="text-gray-400 hover:text-gray-600 p-1"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
-                  
-                  {showDropdown === client.id && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
-                      <div className="py-1">
-                        <Link
-                          href={`/clients/${client.id}`}
-                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Modifica
-                        </Link>
-                        <Link
-                          href={`/clients/${client.id}/bookings`}
-                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          <Calendar className="w-4 h-4 mr-2" />
-                          Storico appuntamenti
-                        </Link>
-                        <button
-                          className="flex items-center w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50"
-                          onClick={() => handleDeleteClick(client.id, client.full_name)}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Elimina
-                        </button>
-                      </div>
+                      )}
                     </div>
-                  )}
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    {client.last_visit_at 
+                      ? formatDate(client.last_visit_at)
+                      : 'Mai'
+                    }
+                  </td>
+                  <td className="px-6 py-4 flex gap-2">
+                    <Link href={`/clients/${client.id}`} title="Modifica">
+                      <Edit className="w-5 h-5 text-gray-600 hover:text-indigo-600 cursor-pointer" />
+                    </Link>
+                    <Link href={`/clients/${client.id}/bookings`} title="Storico appuntamenti">
+                      <Calendar className="w-5 h-5 text-gray-600 hover:text-indigo-600 cursor-pointer" />
+                    </Link>
+                    <button
+                      title="Elimina"
+                      onClick={() => handleDeleteClick(client.id, client.full_name)}
+                      className="focus:outline-none"
+                    >
+                      <Trash2 className="w-5 h-5 text-red-600 hover:text-red-800 cursor-pointer" />
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

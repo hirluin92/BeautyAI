@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
@@ -9,13 +9,22 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
+
+  useEffect(() => {
+    if (searchParams.get('registered') === 'true') {
+      setSuccess('Registrazione completata! Controlla la tua email per confermare l’account.')
+    }
+  }, [searchParams])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setSuccess(null)
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -23,10 +32,20 @@ export default function LoginPage() {
         password,
       })
 
-      if (error) throw error
+      if (error) {
+        if (error.message?.toLowerCase().includes('email not confirmed') || error.message?.toLowerCase().includes('email_not_confirmed')) {
+          setError('Devi prima confermare il tuo account tramite il link che ti abbiamo inviato via email.')
+        } else {
+          setError(error.message || 'Errore durante il login')
+        }
+        return
+      }
 
-      // Redirect al dashboard dopo login successo
-      router.push('/dashboard')
+      // Recupera l'URL di destinazione dai parametri di ricerca
+      const redirectTo = searchParams.get('redirectedFrom') || '/dashboard'
+      
+      // Redirect alla pagina di destinazione
+      router.push(redirectTo)
       router.refresh() // Importante per aggiornare il server component
     } catch (error: any) {
       setError(error.message || 'Errore durante il login')
@@ -47,8 +66,13 @@ export default function LoginPage() {
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+          {success && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded relative mb-2">
+              {success}
+            </div>
+          )}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative mb-2">
               {error}
             </div>
           )}
