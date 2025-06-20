@@ -77,14 +77,6 @@ export default async function ServiceDetailPage({ params }: ServiceDetailPagePro
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('it-IT', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-  }
-
   return (
     <>
       {/* Header */}

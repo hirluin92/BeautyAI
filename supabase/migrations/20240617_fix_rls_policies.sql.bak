@@ -1,0 +1,248 @@
+-- Path: supabase/migrations/20240617_fix_rls_policies_v2.sql
+-- Fix per la circular dependency senza usare lo schema auth
+
+-- Step 1: Disabilita temporaneamente RLS
+ALTER TABLE organizations DISABLE ROW LEVEL SECURITY;
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE services DISABLE ROW LEVEL SECURITY;
+ALTER TABLE clients DISABLE ROW LEVEL SECURITY;
+ALTER TABLE bookings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE payments DISABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_sessions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages DISABLE ROW LEVEL SECURITY;
+ALTER TABLE analytics_events DISABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications DISABLE ROW LEVEL SECURITY;
+
+-- Step 2: Drop tutte le policy esistenti
+DROP POLICY IF EXISTS "Users can view their own organization" ON organizations;
+DROP POLICY IF EXISTS "Users can update their own organization" ON organizations;
+DROP POLICY IF EXISTS "Users can view their own profile" ON users;
+DROP POLICY IF EXISTS "Users can update their own profile" ON users;
+DROP POLICY IF EXISTS "Organizations can view their own active services" ON services;
+DROP POLICY IF EXISTS "Users can manage their organization's services" ON services;
+DROP POLICY IF EXISTS "Users can view their organization's clients" ON clients;
+DROP POLICY IF EXISTS "Users can manage their organization's clients" ON clients;
+DROP POLICY IF EXISTS "Users can view their organization's bookings" ON bookings;
+DROP POLICY IF EXISTS "Users can manage their organization's bookings" ON bookings;
+DROP POLICY IF EXISTS "Users can view their organization's payments" ON payments;
+DROP POLICY IF EXISTS "Users can manage their organization's payments" ON payments;
+DROP POLICY IF EXISTS "Users can view their organization's chat sessions" ON chat_sessions;
+DROP POLICY IF EXISTS "Users can manage their organization's chat sessions" ON chat_sessions;
+DROP POLICY IF EXISTS "Users can view their organization's chat messages" ON chat_messages;
+DROP POLICY IF EXISTS "Users can manage their organization's chat messages" ON chat_messages;
+DROP POLICY IF EXISTS "Users can view their organization's analytics" ON analytics_events;
+DROP POLICY IF EXISTS "Users can manage their organization's analytics" ON analytics_events;
+DROP POLICY IF EXISTS "Organizations can view their own notifications" ON notifications;
+DROP POLICY IF EXISTS "Organizations can insert their own notifications" ON notifications;
+DROP POLICY IF EXISTS "Organizations can update their own notifications" ON notifications;
+
+-- Step 3: Crea nuove policies senza circular dependency
+
+-- Organizations policies - usa EXISTS per evitare circular dependency
+CREATE POLICY "Users can view their organization"
+ON organizations FOR SELECT
+USING (
+    EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.organization_id = organizations.id 
+        AND users.id = auth.uid()
+    )
+);
+
+CREATE POLICY "Owners can update their organization"
+ON organizations FOR UPDATE
+USING (
+    EXISTS (
+        SELECT 1 FROM users 
+        WHERE users.organization_id = organizations.id 
+        AND users.id = auth.uid()
+        AND users.role = 'owner'
+    )
+);
+
+-- Users policies - permetti agli utenti di vedere i membri della loro org
+CREATE POLICY "Users can view their organization members"
+ON users FOR SELECT
+USING (
+    organization_id IN (
+        SELECT organization_id 
+        FROM users 
+        WHERE id = auth.uid()
+    )
+    OR id = auth.uid()
+);
+
+CREATE POLICY "Users can update own profile"
+ON users FOR UPDATE
+USING (id = auth.uid());
+
+CREATE POLICY "Owners can insert new users"
+ON users FOR INSERT
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM users existing_user
+        WHERE existing_user.id = auth.uid() 
+        AND existing_user.organization_id = organization_id
+        AND existing_user.role = 'owner'
+    )
+);
+
+-- Services policies - usa subquery per organization_id
+CREATE POLICY "Users can view organization services"
+ON services FOR SELECT
+USING (
+    organization_id IN (
+        SELECT organization_id FROM users WHERE id = auth.uid()
+    )
+    AND deleted_at IS NULL
+);
+
+CREATE POLICY "Users can manage organization services"
+ON services FOR ALL
+USING (
+    organization_id IN (
+        SELECT organization_id FROM users WHERE id = auth.uid()
+    )
+);
+
+-- Clients policies
+CREATE POLICY "Users can view organization clients"
+ON clients FOR SELECT
+USING (
+    organization_id IN (
+        SELECT organization_id FROM users WHERE id = auth.uid()
+    )
+);
+
+CREATE POLICY "Users can manage organization clients"
+ON clients FOR ALL
+USING (
+    organization_id IN (
+        SELECT organization_id FROM users WHERE id = auth.uid()
+    )
+);
+
+-- Bookings policies
+CREATE POLICY "Users can view organization bookings"
+ON bookings FOR SELECT
+USING (
+    organization_id IN (
+        SELECT organization_id FROM users WHERE id = auth.uid()
+    )
+);
+
+CREATE POLICY "Users can manage organization bookings"
+ON bookings FOR ALL
+USING (
+    organization_id IN (
+        SELECT organization_id FROM users WHERE id = auth.uid()
+    )
+);
+
+-- Payments policies
+CREATE POLICY "Users can view organization payments"
+ON payments FOR SELECT
+USING (
+    organization_id IN (
+        SELECT organization_id FROM users WHERE id = auth.uid()
+    )
+);
+
+CREATE POLICY "Users can manage organization payments"
+ON payments FOR ALL
+USING (
+    organization_id IN (
+        SELECT organization_id FROM users WHERE id = auth.uid()
+    )
+);
+
+-- Chat sessions policies
+CREATE POLICY "Users can view organization chat sessions"
+ON chat_sessions FOR SELECT
+USING (
+    organization_id IN (
+        SELECT organization_id FROM users WHERE id = auth.uid()
+    )
+);
+
+CREATE POLICY "Users can manage organization chat sessions"
+ON chat_sessions FOR ALL
+USING (
+    organization_id IN (
+        SELECT organization_id FROM users WHERE id = auth.uid()
+    )
+);
+
+-- Chat messages policies
+CREATE POLICY "Users can view organization chat messages"
+ON chat_messages FOR SELECT
+USING (
+    organization_id IN (
+        SELECT organization_id FROM users WHERE id = auth.uid()
+    )
+);
+
+CREATE POLICY "Users can manage organization chat messages"
+ON chat_messages FOR ALL
+USING (
+    organization_id IN (
+        SELECT organization_id FROM users WHERE id = auth.uid()
+    )
+);
+
+-- Analytics events policies
+CREATE POLICY "Users can view organization analytics"
+ON analytics_events FOR SELECT
+USING (
+    organization_id IN (
+        SELECT organization_id FROM users WHERE id = auth.uid()
+    )
+);
+
+CREATE POLICY "Users can manage organization analytics"
+ON analytics_events FOR ALL
+USING (
+    organization_id IN (
+        SELECT organization_id FROM users WHERE id = auth.uid()
+    )
+);
+
+-- Notifications policies
+CREATE POLICY "Users can view organization notifications"
+ON notifications FOR SELECT
+USING (
+    organization_id IN (
+        SELECT organization_id FROM users WHERE id = auth.uid()
+    )
+);
+
+CREATE POLICY "Users can manage organization notifications"
+ON notifications FOR ALL
+USING (
+    organization_id IN (
+        SELECT organization_id FROM users WHERE id = auth.uid()
+    )
+);
+
+-- Step 4: Riabilita RLS
+ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE services ENABLE ROW LEVEL SECURITY;
+ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE analytics_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+-- Step 5: Crea indici per performance con RLS
+CREATE INDEX IF NOT EXISTS idx_users_auth_org ON users(id, organization_id);
+CREATE INDEX IF NOT EXISTS idx_users_org ON users(organization_id);
+CREATE INDEX IF NOT EXISTS idx_services_org_deleted ON services(organization_id, deleted_at);
+CREATE INDEX IF NOT EXISTS idx_clients_org ON clients(organization_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_org ON bookings(organization_id);
+CREATE INDEX IF NOT EXISTS idx_payments_org ON payments(organization_id);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_org ON chat_sessions(organization_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_org ON chat_messages(organization_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_events_org ON analytics_events(organization_id);

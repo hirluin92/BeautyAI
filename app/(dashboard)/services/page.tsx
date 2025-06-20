@@ -12,6 +12,7 @@ interface ServicesPageProps {
     category?: string
     status?: 'active' | 'inactive' | 'all'
     page?: string
+    limit?: string
   }>
 }
 
@@ -41,10 +42,10 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
   const typedUserData = userData as UserWithOrganization
 
   // Pagination
-  const page = parseInt(params.page || '1')
-  const perPage = 10
-  const from = (page - 1) * perPage
-  const to = from + perPage - 1
+  const currentPage = parseInt(params.page || '1')
+  const limit = parseInt(params.limit || '20')
+  const from = (currentPage - 1) * limit
+  const to = from + limit - 1
 
   // Build query
   let query = supabase
@@ -74,8 +75,8 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
     console.error('Error fetching services:', error)
   }
 
-  const typedServices = services as Service[] || []
-  const totalPages = Math.ceil((count || 0) / perPage)
+  const typedServices = services as Service[] | null
+  const totalPages = Math.ceil((count || 0) / limit)
 
   // Get unique categories for filter
   const { data: allServices } = await supabase
@@ -89,8 +90,8 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
 
   // Calculate stats
   const totalServices = count || 0
-  const activeServices = typedServices.filter(s => s.is_active).length
-  const totalValue = typedServices.reduce((sum, s) => sum + (s.price || 0), 0)
+  const activeServices = typedServices?.filter(s => s.is_active).length || 0
+  const totalValue = typedServices?.reduce((sum, s) => sum + (s.price || 0), 0) || 0
 
   return (
     <>
@@ -137,7 +138,7 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
         defaultStatus={params.status}
       />
       {/* Services Table */}
-      <ServicesTable services={typedServices} />
+      <ServicesTable services={typedServices || []} />
     </>
   )
 }

@@ -4,22 +4,65 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { BarChart3, Calendar, Clock, DollarSign, Package, Users, Settings, MessageSquare, LogOut } from 'lucide-react'
 import DashboardStatsClient from './DashboardStatsClient'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
 export default async function DashboardPage() {
   const supabase = await createClient()
   
   // Get authenticated user
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   
+  console.log('=== AUTH DEBUG ===')
+  console.log('Auth user:', user)
+  console.log('Auth error:', authError)
+  
   if (authError || !user) {
     redirect('/login')
   }
 
-  // Get user data
+  // Debug: prova query semplice prima
+  console.log('=== SIMPLE QUERY DEBUG ===')
+  console.log('User ID being queried:', user.id)
+  
+  const { data: simpleUserData, error: simpleError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
+  console.log('Simple query result:', simpleUserData)
+  console.log('Simple query error:', simpleError)
+
+  // Debug: prova query senza join
+  const { data: userOnlyData, error: userOnlyError } = await supabase
+    .from('users')
+    .select('id, email, full_name, organization_id, role')
+    .eq('id', user.id)
+    .single()
+
+  console.log('User only query result:', userOnlyData)
+  console.log('User only query error:', userOnlyError)
+
+  // Get user data con join
+  console.log('=== FULL QUERY DEBUG ===')
   const { data: userData, error: userError } = await supabase
     .from('users')
     .select('*, organization:organizations(*)')
     .eq('id', user.id)
     .single()
+
+  console.log('Full query result:', userData)
+  console.log('Full query error:', userError)
+
+  // Debug: prova a vedere tutti gli utenti (per capire se è un problema di ID)
+  const { data: allUsers, error: allUsersError } = await supabase
+    .from('users')
+    .select('id, email')
+    .limit(5)
+
+  console.log('=== ALL USERS DEBUG ===')
+  console.log('All users:', allUsers)
+  console.log('All users error:', allUsersError)
 
   if (userError || !userData) {
     return (
@@ -27,6 +70,14 @@ export default async function DashboardPage() {
         <div className="bg-white p-8 rounded shadow max-w-md w-full">
           <h2 className="text-2xl font-bold text-red-600 mb-4">Errore di Accesso</h2>
           <p className="text-gray-600 mb-4">Il tuo profilo utente non è stato trovato o non è completo. Contatta l'assistenza.</p>
+          <div className="bg-gray-100 p-4 rounded mb-4 text-xs">
+            <p><strong>Debug Info:</strong></p>
+            <p>Auth User ID: {user?.id || 'N/A'}</p>
+            <p>Auth Email: {user?.email || 'N/A'}</p>
+            <p>Error: {userError?.message || 'Unknown error'}</p>
+            <p>Simple Query Result: {JSON.stringify(simpleUserData)}</p>
+            <p>Simple Query Error: {simpleError?.message || 'None'}</p>
+          </div>
           <form action="/api/auth/logout" method="POST" className="text-center">
             <button type="submit" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Esci</button>
           </form>
@@ -97,21 +148,27 @@ export default async function DashboardPage() {
   }
   const clientsToday = Array.from(clientsMap.values());
 
-  // Incasso previsto di oggi
+  // Incasso previsto di oggi (tutti tranne cancellati)
   const incassoOggi = bookingsTodayArr
-    .filter(b => b.status && ['confirmed', 'completed'].includes(b.status))
-    .reduce((sum, b) => sum + (b.price ?? 0), 0)
+    .filter(b => b.status !== 'cancelled')
+    .reduce((sum, b) => {
+      const prezzo = b.price ?? b.service?.price ?? 0;
+      return sum + prezzo;
+    }, 0);
 
-  // Incasso mensile
+  // Incasso mensile (tutti tranne cancellati)
   const { data: bookingsMonth } = await supabase
     .from('bookings')
-    .select('price, status')
+    .select('price, status, service:services(price)')
     .eq('organization_id', orgId)
     .gte('start_at', monthStart.toISOString())
     .lt('start_at', monthEnd.toISOString());
   const incassoMese = (bookingsMonth || [])
-    .filter(b => b.status && ['confirmed', 'completed'].includes(b.status))
-    .reduce((sum, b) => sum + (b.price ?? 0), 0)
+    .filter(b => b.status !== 'cancelled')
+    .reduce((sum, b) => {
+      const prezzo = b.price ?? b.service?.price ?? 0;
+      return sum + prezzo;
+    }, 0);
 
   // Stato per modale (solo in componente client, qui solo markup)
   // ...

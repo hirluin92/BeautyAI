@@ -4,8 +4,12 @@ import { redirect, notFound } from 'next/navigation'
 import BookingForm from '@/components/bookings/booking-form'
 import { UserWithOrganization } from '@/types'
 
-export default async function EditBookingPage({ params }: { params: { id: string } }) {
-  const bookingId = params.id
+interface PageProps {
+  params: Promise<{ id: string }>
+}
+
+export default async function EditBookingPage({ params }: PageProps) {
+  const { id } = await params
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -23,7 +27,7 @@ export default async function EditBookingPage({ params }: { params: { id: string
   const { data: booking, error: bookingError } = await supabase
     .from('bookings')
     .select('*')
-    .eq('id', bookingId)
+    .eq('id', id)
     .eq('organization_id', typedUser.organization_id!)
     .single()
 
@@ -59,7 +63,7 @@ export default async function EditBookingPage({ params }: { params: { id: string
       <div className="max-w-2xl">
         <BookingForm
           mode="edit"
-          bookingId={bookingId}
+          bookingId={id}
           organizationId={typedUser.organization_id!}
           clients={clients || []}
           services={services || []}

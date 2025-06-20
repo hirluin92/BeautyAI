@@ -6,11 +6,12 @@ import { ArrowLeft } from 'lucide-react'
 import { UserWithOrganization } from '@/types'
 import BookingForm from '@/components/bookings/booking-form'
 
-export default async function NewBookingPage({
-  searchParams
-}: {
-  searchParams: { date?: string; time?: string; client?: string; service?: string }
-}) {
+interface PageProps {
+  searchParams: Promise<{ date?: string; time?: string; client?: string; service?: string }>
+}
+
+export default async function NewBookingPage({ searchParams }: PageProps) {
+  const params = await searchParams
   const supabase = await createClient()
   
   const { data: { user } } = await supabase.auth.getUser()
@@ -50,7 +51,7 @@ export default async function NewBookingPage({
   // Get staff
   const { data: staff } = await supabase
     .from('users')
-    .select('id, full_name, role')
+    .select('id, full_name, role, email, avatar_url, created_at, is_active, last_login_at, organization_id, phone, updated_at')
     .eq('organization_id', typedUserData.organization_id!)
     .eq('is_active', true)
     .order('full_name')
@@ -81,10 +82,10 @@ export default async function NewBookingPage({
           clients={clients || []}
           services={services || []}
           staff={staff || []}
-          defaultDate={searchParams.date}
-          defaultTime={searchParams.time}
-          defaultClientId={searchParams.client}
-          defaultServiceId={searchParams.service}
+          defaultDate={params.date}
+          defaultTime={params.time}
+          defaultClientId={params.client}
+          defaultServiceId={params.service}
         />
       </div>
     </>

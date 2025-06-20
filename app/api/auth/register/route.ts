@@ -95,8 +95,9 @@ export async function POST(request: Request) {
       redirect: '/login?registered=true'
     })
 
-  } catch (error: any) {
-    console.error('Server error:', error)
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto'
+    console.error('Registration error:', errorMessage)
     return NextResponse.json(
       { error: 'Errore interno del server' },
       { status: 500 }

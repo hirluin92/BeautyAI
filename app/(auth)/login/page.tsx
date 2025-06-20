@@ -47,8 +47,9 @@ export default function LoginPage() {
       // Redirect alla pagina di destinazione
       router.push(redirectTo)
       router.refresh() // Importante per aggiornare il server component
-    } catch (error: any) {
-      setError(error.message || 'Errore durante il login')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

@@ -1,239 +1,133 @@
-# Beauty AI Assistant - Struttura File Progetto
-Ultimo aggiornamento: 14/03/2024
+# Beauty AI Assistant - File Structure & Directory Map
 
-## 📁 Struttura Directory
+**Ultimo aggiornamento:** Dicembre 2024
 
-```
-beauty-ai/
-├── app/
-│   ├── (auth)/
-│   │   ├── login/
-│   │   └── register/
-│   │   ├── layout.tsx
-│   │   └── page.tsx
-│   ├── (dashboard)/
-│   │   ├── layout.tsx
-│   │   ├── dashboard/
-│   │   │   └── page.tsx
-│   │   ├── clients/
-│   │   │   ├── [id]/
-│   │   │   │   └── page.tsx
-│   │   │   ├── new/
-│   │   │   │   └── page.tsx
-│   │   │   └── page.tsx
-│   │   ├── services/
-│   │   │   ├── [id]/
-│   │   │   │   └── page.tsx
-│   │   │   ├── new/
-│   │   │   │   └── page.tsx
-│   │   │   └── page.tsx
-│   │   └── bookings/
-│   │       ├── [id]/
-│   │       │   └── page.tsx
-│   │       ├── new/
-│   │       │   └── page.tsx
-│   │       └── page.tsx
-│   ├── api/
-│   │   ├── clients/
-│   │   │   ├── [id]/
-│   │   │   │   └── route.ts
-│   │   │   └── route.ts
-│   │   ├── services/
-│   │   │   ├── [id]/
-│   │   │   │   └── route.ts
-│   │   │   └── route.ts
-│   │   ├── bookings/
-│   │   │   ├── [id]/
-│   │   │   │   └── route.ts
-│   │   │   └── route.ts
-│   │   └── auth/
-│   │       └── callback/
-│   │           └── route.ts
-│   ├── layout.tsx
-│   └── page.tsx
-├── components/
-│   ├── auth/
-│   │   ├── login-form.tsx
-│   │   └── register-form.tsx
-│   ├── clients/
-│   │   ├── client-form.tsx
-│   │   ├── client-list.tsx
-│   │   ├── client-stats.tsx
-│   │   └── client-tags.tsx
-│   ├── services/
-│   │   ├── service-form.tsx
-│   │   ├── service-list.tsx
-│   │   └── service-categories.tsx
-│   ├── bookings/
-│   │   ├── booking-form.tsx
-│   │   ├── booking-list.tsx
-│   │   ├── booking-calendar.tsx
-│   │   └── booking-actions.tsx
-│   ├── notifications/
-│   │   ├── toast-provider.tsx
-│   │   ├── toast.tsx
-│   │   └── notification-badge.tsx
-│   └── ui/
-│       ├── button.tsx
-│       ├── input.tsx
-│       ├── select.tsx
-│       └── dialog.tsx
-├── lib/
-│   ├── supabase/
-│   │   ├── client.ts
-│   │   └── server.ts
-│   ├── edge/
-│   │   ├── send-reminders.ts
-│   │   └── mark-no-show.ts
-│   ├── notifications/
-│   │   ├── email.ts
-│   │   ├── sms.ts
-│   │   └── whatsapp.ts
-│   ├── validations.ts
-│   └── utils.ts
-├── hooks/
-│   ├── use-notifications.ts
-│   ├── use-bookings.ts
-│   └── use-toast.ts
-├── types/
-│   ├── database.ts
-│   └── index.ts
-├── public/
-│   └── assets/
-├── middleware.ts
-├── package.json
-├── tsconfig.json
-├── next.config.js
-├── tailwind.config.ts
-└── .env.local
-```
+Questa guida descrive la struttura completa del progetto, con spiegazione di ogni cartella e file chiave. Utile per onboarding, refactoring e sviluppo collaborativo.
 
-## 📦 Componenti Principali
+---
 
-### Auth Components
-- `login-form.tsx`: Form di login
-- `register-form.tsx`: Form di registrazione
+## 📁 Root Directory
 
-### Client Components
-- `client-form.tsx`: Form creazione/modifica cliente
-- `client-list.tsx`: Lista clienti con ricerca
-- `client-stats.tsx`: Statistiche cliente
-- `client-tags.tsx`: Gestione tag cliente
+- **README.md** — Documentazione principale, quick start, stack, guide.
+- **CURRENT_STRUCTURE.md** — Struttura aggiornata e dettagliata del progetto.
+- **PROJECT_CONTEXT.md** — Contesto, obiettivi, visione, use case.
+- **PROJECT_STATUS.md** — Stato attuale, milestone, metriche, problemi noti.
+- **TODO_LIST.md / TODO.md** — Task, backlog, roadmap.
+- **DATABASE_SCHEMA_UPDATED.sql** — Schema database completo e versionato.
+- **CHANGELOG.md** — Log delle modifiche e release note.
+- **IMPORTANT_NOTES.md** — Note critiche, workaround, decisioni architetturali.
+- **ENV_SETUP_GUIDE.md** — Guida setup ambiente e variabili.
+- **SECURITY_CHECKLIST.md** — Checklist sicurezza e best practice.
+- **AI_SYSTEM_README.md / AI_Chat_System_design.txt** — Documentazione sistema AI/chatbot.
+- **package.json / package-lock.json** — Dipendenze, script, metadata progetto.
+- **tsconfig.json** — Configurazione TypeScript.
+- **next.config.ts** — Configurazione Next.js.
+- **.eslintrc.json / eslint.config.mjs** — Configurazione ESLint.
+- **jest.config.js / jest.setup.js** — Configurazione e setup Jest.
+- **playwright.config.ts** — Configurazione Playwright (E2E).
+- **postcss.config.mjs** — Configurazione PostCSS.
+- **.gitignore** — File e cartelle ignorate da git.
 
-### Service Components
-- `service-form.tsx`: Form creazione/modifica servizio
-- `service-list.tsx`: Lista servizi con filtri
-- `service-categories.tsx`: Gestione categorie
+---
 
-### Booking Components
-- `booking-form.tsx`: Form creazione/modifica prenotazione
-- `booking-list.tsx`: Lista prenotazioni
-- `booking-calendar.tsx`: Calendario interattivo
-- `booking-actions.tsx`: Pulsanti azione stato
+## 📁 app/
+**Next.js App Router** (v15+). Tutte le route, layout e API.
 
-### Notification Components
-- `toast-provider.tsx`: Provider toast notifications
-- `toast.tsx`: Componente toast
-- `notification-badge.tsx`: Badge notifiche
+- **(auth)/** — Route gruppo autenticazione (login, register, layout dedicato).
+- **(dashboard)/** — Route gruppo dashboard (protette, sidebar, pagine principali).
+  - **bookings/** — Prenotazioni: lista, dettaglio, nuovo, modifica, error/loading.
+  - **clients/** — Clienti: lista, nuovo, dettaglio, storico prenotazioni, modifica.
+  - **services/** — Servizi: lista, nuovo, dettaglio, modifica.
+  - **calendar/** — Calendario interattivo.
+  - **dashboard/** — Dashboard principale, statistiche, modali.
+  - **error/** — Error boundary per dashboard.
+- **api/** — API routes (autenticazione, bookings, clients, services, staff, notifications, whatsapp).
+- **globals.css** — Stili globali (Tailwind, palette, variabili CSS).
+- **layout.tsx** — Root layout (font, provider, struttura base).
+- **page.tsx** — Homepage.
+- **test-db/** — Pagina test connessione database.
+- **test-twilio/** — Pagina test Twilio.
 
-### UI Components
-- `button.tsx`: Pulsanti custom
-- `input.tsx`: Input fields
-- `select.tsx`: Select dropdown
-- `dialog.tsx`: Modal dialog
+---
 
-## 🔧 Utility e Helpers
+## 📁 components/
+**Componenti React** riutilizzabili e organizzati per dominio.
 
-### Supabase
-- `client.ts`: Client Supabase
-- `server.ts`: Server Supabase
+- **ui/** — Componenti base UI (Button, Card, Badge, Alert, Modal, Tabs, Dropdown, Skeleton, ecc.).
+- **auth/** — Componenti autenticazione (LogoutButton, ecc.).
+- **bookings/** — Componenti prenotazioni (BookingForm, BookingActions, NotificationManager, ecc.).
+- **clients/** — Componenti clienti (ClientForm, ClientsTable, QuickAdd, ecc.).
+- **services/** — Componenti servizi (ServiceForm, ServicesTable, ecc.).
+- **dashboard/** — Componenti dashboard (statistiche, modali, ecc.).
+- **notifications/** — Componenti notifiche (NotificationsDashboard, ToastProvider, ecc.).
+- **calendar/** — Componenti calendario (CalendarView, ecc.).
+- **layout/** — Componenti layout (Sidebar, ecc.).
 
-### Edge Functions
-- `send-reminders.ts`: Gestione notifiche
-- `mark-no-show.ts`: Gestione no-show
+---
 
-### Notifications
-- `email.ts`: Integrazione EmailJS
-- `sms.ts`: Integrazione Twilio SMS
-- `whatsapp.ts`: Integrazione Twilio WhatsApp
+## 📁 lib/
+**Librerie, utilities e servizi**.
 
-### Hooks
-- `use-notifications.ts`: Hook notifiche
-- `use-bookings.ts`: Hook prenotazioni
-- `use-toast.ts`: Hook toast
+- **supabase/** — Client Supabase (browser/server), edge functions (mark-no-show, send-reminders).
+- **ai/** — Integrazione AI (constants, conversation-handler, types, whatsapp-integration).
+- **notifications/** — Sistema notifiche (email, whatsapp, notification.service).
+- **constants/** — Costanti applicazione (booking, ecc.).
+- **utils.ts** — Utility functions generiche.
+- **twilio-client.ts** — Client Twilio per SMS/WhatsApp.
 
-## 📝 File di Configurazione
+---
 
-### Next.js
-- `next.config.js`: Configurazione Next.js
-- `tsconfig.json`: Configurazione TypeScript
-- `tailwind.config.ts`: Configurazione Tailwind
+## 📁 types/
+**Definizioni TypeScript**.
 
-### Environment
-- `.env.local`: Variabili ambiente
-- `.env.example`: Template variabili ambiente
+- **database.ts** — Tipi database generati (Supabase, 725+ righe).
+- **index.ts** — Tipi custom e aggregati.
 
-## 🔒 Sicurezza
+---
 
-### Middleware
-- `middleware.ts`: Protezione routes
-- `lib/supabase/server.ts`: Server-side auth
+## 📁 hooks/
+**Custom React hooks** (es: use-notifications).
 
-### Types
-- `types/database.ts`: Tipi database
-- `types/index.ts`: Tipi comuni
+---
 
-## 🚀 Deployment
+## 📁 supabase/
+**Migrazioni database** e configurazione Supabase.
 
-### Vercel
-- Configurazione automatica
-- Preview deployments
-- Production checks
+- **migrations/** — File SQL per creazione e aggiornamento schema.
 
-### Supabase
-- Database migrations
-- Edge functions
-- Storage buckets
+---
 
-## 📊 Monitoring
+## 📁 __tests__/
+**Test unitari** (API, componenti, db, performance).
 
-### Analytics
-- Vercel Analytics
-- Error tracking
-- Performance monitoring
+---
 
-### Logging
-- Edge function logs
-- API logs
-- Error logs
+## 📁 e2e/
+**Test end-to-end** (Playwright, es: auth.spec.ts).
 
-## 🎯 Prossimi Sviluppi
+---
 
-### Priorità Alta
-1. Sistema notifiche
-2. Azioni di stato
-3. Toast notifications
-4. Edge functions
+## 📁 public/
+**Asset statici** (icone, immagini, svg, favicon).
 
-### Priorità Media
-1. Analytics
-2. Testing
-3. Documentation
-4. Performance
+---
 
-### Priorità Bassa
-1. Mobile app
-2. API pubblica
-3. Marketplace
-4. Gamification
+## 📄 Altri file chiave
+- **AI_Chat_System_design.txt** — Design e flussi sistema AI/chatbot.
+- **AUTO_WHATSAPP_SETUP.md** — Guida setup WhatsApp Business API.
+- **TEST_NOTIFICATIONS.md** — Guida test sistema notifiche.
+- **TWILIO_SETUP_GUIDE.md / STEP_BY_STEP.md** — Guida setup Twilio.
+- **WHATSAPP_ONLY_STRATEGY.md / VS_EMAIL_STRATEGY.md** — Strategie notifiche.
+- **SECURITY_CHECKLIST.md** — Checklist sicurezza.
+- **DEVELOPMENT_LOG.md** — Log sviluppo e refactoring.
 
-## 📌 Layout
+---
 
-La dashboard è strutturata secondo le best practice di Next.js, con un layout condiviso (in "app/(dashboard)/layout.tsx") che fornisce la sidebar, la navigazione e il wrapper (es. "min-h-screen", "bg-gray-50", "ml-64", ecc.). Tutte le sottopagine (clients, services, bookings, ecc.) sono "figlie" del layout e non duplicano la sidebar, il wrapper o il <main>. In questo modo, ogni pagina contiene solo il contenuto specifico (header, form, dettagli, ecc.) e la manutenzione (es. aggiornare la sidebar) è centralizzata.
+**Nota:**
+- Tutte le directory sono modulari e seguono la logica "feature-based".
+- I file `.bak` sono backup temporanei.
+- I file `.md` sono documentazione e guide operative.
 
-## 🔄 Cambiamento
+---
 
-- /app/(dashboard)/dashboard/DashboardStatsClient.tsx: componente client-side per le statistiche e la dropdown clienti di oggi
-- /app/(dashboard)/dashboard/page.tsx: logica server per raggruppamento clienti/servizi di oggi
-- Nessuna card "Servizi di oggi"
-- Dropdown dettagliata per clienti di oggi
+**Beauty AI Assistant** — Struttura pensata per scalabilità, collaborazione e sviluppo rapido.

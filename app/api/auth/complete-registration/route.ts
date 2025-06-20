@@ -70,16 +70,18 @@ export async function POST(request: Request) {
         organization: org
       })
 
-    } catch (error: any) {
-      console.error('Transaction error:', error)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto'
+      console.error('Error completing registration:', errorMessage)
       return NextResponse.json(
-        { error: error.message || 'Errore durante la creazione dei dati' },
+        { error: errorMessage },
         { status: 400 }
       )
     }
 
-  } catch (error: any) {
-    console.error('Complete registration error:', error)
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto'
+    console.error('Complete registration error:', errorMessage)
     return NextResponse.json(
       { error: 'Errore interno del server' },
       { status: 500 }

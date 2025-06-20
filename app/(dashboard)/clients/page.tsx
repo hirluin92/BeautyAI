@@ -1,10 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Search, Filter, Upload, Download } from 'lucide-react'
+import { Plus, Upload, Download } from 'lucide-react'
 import { Client, UserWithOrganization } from '@/types'
 import ClientsTable from '@/components/clients/clients-table'
 import ClientsSearch from '@/components/clients/clients-search'
+import { Suspense } from 'react'
+import { Button } from '@/components/ui/button'
 
 interface SearchParams {
   search?: string

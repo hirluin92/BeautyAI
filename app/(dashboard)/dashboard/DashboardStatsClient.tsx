@@ -123,11 +123,11 @@ export default function DashboardStatsClient({
             <DollarSign className="h-8 w-8 text-yellow-600" />
           </div>
         </div>
-        {/* Incasso mensile */}
+        {/* Incasso mensile previsto */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Incasso Mensile</p>
+              <p className="text-sm font-medium text-gray-600">Incasso Mensile Previsto</p>
               <p className="text-2xl font-semibold text-gray-900">€{incassoMese.toFixed(2)}</p>
             </div>
             <BarChart3 className="h-8 w-8 text-indigo-600" />

@@ -210,7 +210,7 @@ export default function ClientsTable({
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {clients.map((client) => {
-              const btnRef = useRef<HTMLButtonElement | null>(null);
+              const btnRef = useRef<HTMLButtonElement>(null);
               return (
                 <tr key={client.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">

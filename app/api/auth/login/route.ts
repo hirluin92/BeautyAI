@@ -7,14 +7,14 @@ export async function POST(request: Request) {
     const { email, password } = await request.json()
     const supabase = await createClient()
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password
     })
 
-    if (error) {
+    if (authError) {
       return NextResponse.json(
-        { error: error.message },
+        { error: authError.message },
         { status: 401 }
       )
     }

@@ -57,9 +57,9 @@ export default function RegisterPage() {
         router.push('/login?registered=true')
       }
       
-    } catch (error: any) {
-      console.error('Registration error:', error)
-      setError(error.message || 'Errore durante la registrazione')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

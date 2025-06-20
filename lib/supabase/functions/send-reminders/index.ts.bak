@@ -1,0 +1,259 @@
+// supabase/functions/send-reminders/index.ts
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+interface BookingReminder {
+  id: string
+  start_at: string
+  end_at: string
+  appointment_time: string
+  client_name: string
+  client_email: string
+  client_phone: string
+  service_name: string
+  service_duration: number
+  notification_preferences: {
+    email: boolean
+    sms: boolean
+    whatsapp: boolean
+  }
+  preferred_reminder_hours: number
+}
+
+serve(async (req) => {
+  // Handle CORS
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    // Initialize Supabase client
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // Get bookings that need reminders
+    const { data: bookings, error: fetchError } = await supabaseClient
+      .from('bookings_needing_reminders')
+      .select('*')
+      .lte('start_at', new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString())
+
+    if (fetchError) throw fetchError
+
+    const results = []
+
+    for (const booking of bookings as BookingReminder[]) {
+      const bookingDate = new Date(booking.start_at)
+      const reminderTime = new Date(bookingDate.getTime() - booking.preferred_reminder_hours * 60 * 60 * 1000)
+      
+      // Check if it's time to send reminder
+      if (reminderTime <= new Date()) {
+        const notifications = []
+
+        // Send Email Reminder
+        if (booking.notification_preferences.email && booking.client_email) {
+          const emailResult = await sendEmailReminder(booking)
+          notifications.push({
+            type: 'email',
+            status: emailResult.success ? 'sent' : 'failed',
+            error_message: emailResult.error
+          })
+        }
+
+        // Send SMS Reminder
+        if (booking.notification_preferences.sms && booking.client_phone) {
+          const smsResult = await sendSMSReminder(booking)
+          notifications.push({
+            type: 'sms',
+            status: smsResult.success ? 'sent' : 'failed',
+            error_message: smsResult.error
+          })
+        }
+
+        // Send WhatsApp Reminder
+        if (booking.notification_preferences.whatsapp && booking.client_phone) {
+          const whatsappResult = await sendWhatsAppReminder(booking)
+          notifications.push({
+            type: 'whatsapp',
+            status: whatsappResult.success ? 'sent' : 'failed',
+            error_message: whatsappResult.error
+          })
+        }
+
+        // Update booking reminder status
+        const { error: updateError } = await supabaseClient
+          .from('bookings')
+          .update({
+            reminder_sent_at: new Date().toISOString(),
+            reminder_type: notifications.length > 1 ? 'all' : notifications[0]?.type
+          })
+          .eq('id', booking.id)
+
+        if (updateError) throw updateError
+
+        // Log notifications
+        for (const notification of notifications) {
+          await supabaseClient
+            .from('notification_logs')
+            .insert({
+              booking_id: booking.id,
+              client_id: booking.client_id,
+              type: notification.type,
+              status: notification.status,
+              error_message: notification.error_message,
+              sent_at: new Date().toISOString(),
+              message: formatReminderMessage(booking, notification.type)
+            })
+        }
+
+        results.push({
+          booking_id: booking.id,
+          notifications_sent: notifications
+        })
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, results }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    )
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      }
+    )
+  }
+})
+
+// Email sending function using EmailJS
+async function sendEmailReminder(booking: BookingReminder) {
+  try {
+    const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
+        template_id: Deno.env.get('EMAILJS_TEMPLATE_ID'),
+        user_id: Deno.env.get('EMAILJS_USER_ID'),
+        template_params: {
+          to_email: booking.client_email,
+          to_name: booking.client_name,
+          service_name: booking.service_name,
+          appointment_date: formatDate(booking.start_at),
+          appointment_time: booking.appointment_time,
+          duration: booking.service_duration,
+        }
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to send email')
+    }
+
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+}
+
+// SMS sending function using Twilio
+async function sendSMSReminder(booking: BookingReminder) {
+  try {
+    const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID')
+    const authToken = Deno.env.get('TWILIO_AUTH_TOKEN')
+    const twilioPhone = Deno.env.get('TWILIO_PHONE_NUMBER')
+
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + btoa(`${accountSid}:${authToken}`),
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          To: booking.client_phone,
+          From: twilioPhone!,
+          Body: formatReminderMessage(booking, 'sms')
+        })
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error('Failed to send SMS')
+    }
+
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+}
+
+// WhatsApp sending function using Twilio
+async function sendWhatsAppReminder(booking: BookingReminder) {
+  try {
+    const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID')
+    const authToken = Deno.env.get('TWILIO_AUTH_TOKEN')
+    const twilioWhatsApp = Deno.env.get('TWILIO_WHATSAPP_NUMBER')
+
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + btoa(`${accountSid}:${authToken}`),
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          To: `whatsapp:${booking.client_phone}`,
+          From: `whatsapp:${twilioWhatsApp}`,
+          Body: formatReminderMessage(booking, 'whatsapp')
+        })
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error('Failed to send WhatsApp message')
+    }
+
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+}
+
+// Format reminder message
+function formatReminderMessage(booking: BookingReminder, type: string): string {
+  const date = formatDate(booking.start_at)
+  
+  if (type === 'email') {
+    return `Reminder: You have an appointment for ${booking.service_name} on ${date} at ${booking.appointment_time}.`
+  }
+  
+  return `🔔 Reminder: ${booking.service_name} on ${date} at ${booking.appointment_time}. Duration: ${booking.service_duration} min.`
+}
+
+// Format date helper
+function formatDate(dateString: string): string {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('it-IT', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}

@@ -570,6 +570,18 @@ export type Database = {
           p_exclude_booking_id?: string
         }
         Returns: boolean
+      },
+      confirm_booking: {
+        Args: { booking_id: string },
+        Returns: any
+      },
+      complete_booking: {
+        Args: { booking_id: string },
+        Returns: any
+      },
+      mark_booking_no_show: {
+        Args: { booking_id: string },
+        Returns: any
       }
     }
     Enums: {

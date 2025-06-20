@@ -47,7 +47,7 @@ export default async function ClientBookingsPage({ params }: ClientBookingsPageP
   }
 
   // Get client's bookings with related data
-  const { data: bookings, error: bookingsError } = await supabase
+  const { data: bookings, error } = await supabase
     .from('bookings')
     .select(`
       *,
@@ -57,6 +57,10 @@ export default async function ClientBookingsPage({ params }: ClientBookingsPageP
     .eq('client_id', params.id)
     .eq('organization_id', typedUserData.organization_id!)
     .order('start_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching bookings:', error)
+  }
 
   const getStatusIcon = (status: string) => {
     switch (status) {

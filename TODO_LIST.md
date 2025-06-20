@@ -1,238 +1,213 @@
-# Beauty AI Assistant - Lista TODO
-Ultimo aggiornamento: 14/03/2024
+# Beauty AI Assistant - TODO List & Roadmap
 
-## ✅ Task Completati
+**Ultimo aggiornamento:** Dicembre 2024  
+**Versione:** 2.1.0
 
-### Setup Iniziale
-- [x] Setup progetto Next.js
-- [x] Configurazione Supabase
-- [x] Sistema di autenticazione
-- [x] Setup TypeScript
-- [x] Configurazione Tailwind CSS
-- [x] Setup ESLint e Prettier
+## 🚀 In Corso (Sprint Attuale)
 
-### Database e Sicurezza
-- [x] Schema database completo
-- [x] TypeScript types generati
-- [x] RLS Policies implementate
-  - [x] Policies per organizations
-  - [x] Policies per users
-  - [x] Policies per services
-  - [x] Policies per clients
-  - [x] Policies per bookings
-  - [x] Policies per payments
-  - [x] Policies per chat
-  - [x] Policies per analytics
-- [x] Funzioni helper di sicurezza
-- [x] Trigger per validazione
-- [x] Sistema di rollback
+### 🔧 Bug Fix & Ottimizzazioni
+- [x] **Fix Button component** - Aggiunto supporto variants e size
+- [x] **Fix import/export BookingActions** - Risolto problema component export
+- [x] **Fix TypeScript errors** - Corretti errori params/searchParams
+- [ ] **Ottimizzazione performance** - Bundle size e loading times
+- [ ] **Fix mobile responsiveness** - Migliorare UX su dispositivi mobili
+- [ ] **Fix accessibility issues** - WCAG compliance
 
-### Autenticazione e Registrazione
-- [x] Setup Supabase Auth
-- [x] Implementazione login/logout
-- [x] Registrazione utente
-- [x] Creazione organizzazione
-- [x] Service role client
-- [x] Email confirmation flow
-- [x] Error handling e rollback
-- [x] RLS policies testate
-- [x] Organization isolation verificata
+### 🎨 UI/UX Improvements
+- [ ] **Loading states** - Aggiungere skeleton per tutti i componenti
+- [ ] **Error boundaries** - Migliorare gestione errori
+- [ ] **Toast notifications** - Uniformare stile e comportamento
+- [ ] **Form validation** - Migliorare feedback utente
+- [ ] **Dark mode** - Implementare tema scuro
 
-### CRUD Clienti
-- [x] Creazione clienti
-- [x] Lettura e ricerca
-- [x] Aggiornamento dati
-- [x] Soft delete
-- [x] Validazione form
-- [x] Gestione errori
-- [x] UI/UX completa
+## 📋 Prossimi Sprint (Priorità Alta)
 
-### CRUD Servizi
-- [x] Creazione servizi
-- [x] Modifica servizi
-- [x] Eliminazione servizi
-- [x] Validazione form
-- [x] Gestione categorie
-- [x] Ricerca e filtri
-- [x] Paginazione
-- [x] UI/UX completa
-- [x] Controllo prenotazioni esistenti
+### 🤖 AI Integration
+- [ ] **Chatbot WhatsApp** - Completare integrazione OpenAI
+- [ ] **Gestione conversazioni** - Implementare context management
+- [ ] **Risposte automatiche** - Template e logica risposte
+- [ ] **Analisi sentiment** - Analisi feedback clienti
+- [ ] **Auto-scheduling** - Suggerimenti intelligenti
 
-## 🎯 Priorità Immediate
+### 💳 Sistema Pagamenti
+- [ ] **Integrazione Stripe** - Setup completo
+- [ ] **Gestione fatture** - Generazione automatica
+- [ ] **Report finanziari** - Dashboard revenue
+- [ ] **Refund management** - Gestione rimborsi
+- [ ] **Subscription plans** - Piani abbonamento
 
-### 1. Sistema Prenotazioni (Settimana 4)
-- [ ] Design schema prenotazioni
-  - [ ] Definire campi e relazioni
-  - [ ] Implementare RLS policies
-  - [ ] Creare indici per performance
-- [ ] Implementare CRUD base
-  - [ ] API routes con validazione
-  - [ ] Service role per operazioni privilegiate
-  - [ ] Error handling e rollback
-- [ ] Aggiungere validazione date
-  - [ ] Controllo conflitti
-  - [ ] Orari di lavoro
-  - [ ] Anticipo prenotazioni
-- [ ] Implementare UI calendario
-  - [ ] Componente calendario interattivo
-  - [ ] Vista giornaliera/settimanale
-  - [ ] Drag & drop booking
-- [ ] Gestione conflitti
-  - [ ] Validazione server-side
-  - [ ] Notifiche in tempo reale
-  - [ ] Risoluzione automatica
-- [ ] Notifiche automatiche
-  - [ ] Email di conferma
-  - [ ] Promemoria
-  - [ ] Modifiche/cancellazioni
+### 📱 Mobile & PWA
+- [ ] **PWA setup** - Service worker e manifest
+- [ ] **Push notifications** - Notifiche native
+- [ ] **Offline mode** - Funzionalità offline
+- [ ] **App-like experience** - Installazione home screen
+- [ ] **Touch gestures** - Swipe e pinch
 
-### 2. Integrazione WhatsApp (Settimana 5-6)
-- [ ] Setup API WhatsApp Business
-  - [ ] Registrazione account business
-  - [ ] Configurazione webhook
-  - [ ] Test ambiente sandbox
-- [ ] Implementare invio messaggi
-  - [ ] Template approvati
-  - [ ] Gestione risposte
-  - [ ] Sistema di retry
-- [ ] Gestione conversazioni
-  - [ ] Salvataggio chat
-  - [ ] Storico messaggi
-  - [ ] Tag automatici
-- [ ] Notifiche automatiche
-  - [ ] Conferme prenotazioni
-  - [ ] Promemoria
-  - [ ] Follow-up
-- [ ] Test end-to-end
-  - [ ] Test flusso completo
-  - [ ] Test errori
-  - [ ] Test performance
+## 🎯 Backlog (Priorità Media)
 
-### 3. Sistema Pagamenti (Settimana 7)
-- [ ] Integrazione Stripe Connect
-  - [ ] Setup account
-  - [ ] Configurazione webhook
-  - [ ] Test ambiente
-- [ ] Gestione abbonamenti
-  - [ ] Piano base
-  - [ ] Piano premium
-  - [ ] Gestione upgrade/downgrade
-- [ ] Fatturazione automatica
-  - [ ] Generazione fatture
-  - [ ] Notifiche pagamento
-  - [ ] Gestione scadenze
-- [ ] Report pagamenti
-  - [ ] Dashboard finanziaria
-  - [ ] Export dati
-  - [ ] Analisi trend
-- [ ] Gestione rimborsi
-  - [ ] Policy rimborsi
-  - [ ] Processo automatico
-  - [ ] Notifiche cliente
+### 📊 Analytics Avanzati
+- [ ] **Custom reports** - Builder report personalizzati
+- [ ] **Export dati** - Excel, PDF, CSV
+- [ ] **KPI dashboard** - Metriche business avanzate
+- [ ] **Predictive analytics** - Forecasting e trend
+- [ ] **A/B testing** - Test funzionalità
 
-## 📅 Piano Sviluppo Settimanale
+### 🔄 Automazioni
+- [ ] **Cron jobs avanzati** - Automazioni complesse
+- [ ] **Workflow engine** - Flussi di lavoro automatizzati
+- [ ] **Integrazione calendari** - Google Calendar, Outlook
+- [ ] **Sincronizzazione** - Backup e sync automatici
+- [ ] **Smart reminders** - Promemoria intelligenti
 
-### Settimana 8
-- [ ] Assistente AI
-  - [ ] Setup OpenAI
-  - [ ] Training modello
-  - [ ] Integrazione chat
-  - [ ] Test risposte
+### 🌐 Integrazioni Esterne
+- [ ] **Social media** - Instagram, Facebook booking
+- [ ] **Review platforms** - Google Reviews, TripAdvisor
+- [ ] **CRM avanzato** - HubSpot, Salesforce
+- [ ] **Accounting** - Integrazione contabilità
+- [ ] **Zapier webhooks** - Automazioni esterne
 
-### Settimana 9
-- [ ] Analytics e Reporting
-  - [ ] Dashboard base
-  - [ ] Report clienti
-  - [ ] Report servizi
-  - [ ] Export dati
+## 💡 Idee Future (Priorità Bassa)
 
-### Settimana 10
-- [ ] Ottimizzazioni
-  - [ ] Performance UI
-  - [ ] Caching
-  - [ ] SEO
-  - [ ] Accessibilità
+### 🏢 Enterprise Features
+- [ ] **Multi-location** - Gestione multiple sedi
+- [ ] **Franchise management** - Gestione franchising
+- [ ] **White-label** - Soluzione personalizzabile
+- [ ] **API pubblica** - API per sviluppatori
+- [ ] **Marketplace** - App store per estensioni
 
-## 🚀 Pre-Launch Features
+### 🎮 Gamification
+- [ ] **Loyalty program** - Sistema punti e rewards
+- [ ] **Achievements** - Badge e obiettivi
+- [ ] **Leaderboards** - Classifiche staff
+- [ ] **Referral system** - Sistema referral
+- [ ] **Social features** - Community e social
 
-### Priorità Alta
-- [ ] Import/Export CSV
-- [ ] Sistema notifiche
-- [ ] Gestione staff
-- [ ] Ottimizzazione performance
+### 🔬 Advanced AI
+- [ ] **Computer vision** - Analisi foto risultati
+- [ ] **Voice assistant** - Assistente vocale
+- [ ] **Predictive maintenance** - Manutenzione predittiva
+- [ ] **Personalization** - Esperienza personalizzata
+- [ ] **Chatbot avanzato** - GPT-4 integration
 
-### Priorità Media
-- [ ] Multi-lingua
-- [ ] Tema dark/light
-- [ ] App mobile (PWA)
-- [ ] Backup automatico
+## 🐛 Bug Conosciuti
 
-### Priorità Bassa
+### 🔧 Tecnici
+- [ ] **TypeScript warnings** - Alcuni warning durante build
+- [ ] **Memory leaks** - Possibili leak in alcuni componenti
+- [ ] **Performance issues** - Lentezza con grandi dataset
+- [ ] **Bundle size** - Dimensioni bundle da ottimizzare
+- [ ] **Build time** - Tempo build troppo lungo
+
+### 🎨 UI/UX
+- [ ] **Mobile layout** - Alcuni componenti non responsive
+- [ ] **Loading states** - Stati caricamento mancanti
+- [ ] **Error messages** - Messaggi errore poco chiari
+- [ ] **Accessibility** - Problemi di accessibilità
+- [ ] **Cross-browser** - Incompatibilità browser
+
+### 🔒 Sicurezza
+- [ ] **Input sanitization** - Migliorare sanitizzazione input
+- [ ] **Rate limiting** - Implementare rate limiting avanzato
+- [ ] **Audit trail** - Logging azioni utente
+- [ ] **Data encryption** - Encryption at rest
+- [ ] **Backup strategy** - Strategia backup da definire
+
+## 📈 Milestone e Obiettivi
+
+### 🎯 Q1 2025 - Stabilizzazione
+- [ ] Completamento AI chatbot
+- [ ] Sistema pagamenti funzionante
+- [ ] Ottimizzazioni performance
+- [ ] Test coverage 80%
+- [ ] Documentazione completa
+
+### 🎯 Q2 2025 - Espansione
+- [ ] App mobile MVP
+- [ ] Analytics avanzati
+- [ ] Automazioni complete
+- [ ] Integrazioni esterne
+- [ ] Beta testing pubblico
+
+### 🎯 Q3 2025 - Enterprise
+- [ ] Multi-location support
+- [ ] White-label solution
 - [ ] API pubblica
-- [ ] Widget prenotazioni
-- [ ] Integrazione social
-- [ ] Gamification
+- [ ] Marketplace
+- [ ] Launch preparation
 
-## 📱 Post-Launch Features
+## 🧪 Testing & Quality
 
-### Fase 1 (1-2 mesi)
-- [ ] App mobile nativa
-- [ ] Report avanzati
-- [ ] Gestione inventario
-- [ ] Programma fedeltà
+### Unit Tests
+- [ ] **Componenti UI** - Test tutti i componenti base
+- [ ] **Hooks custom** - Test custom hooks
+- [ ] **Utilities** - Test utility functions
+- [ ] **API routes** - Test endpoint API
+- [ ] **Database functions** - Test funzioni DB
 
-### Fase 2 (3-4 mesi)
-- [ ] Marketplace servizi
-- [ ] Integrazione POS
-- [ ] App clienti
-- [ ] AI avanzata
+### Integration Tests
+- [ ] **Flussi completi** - Test end-to-end
+- [ ] **Autenticazione** - Test login/logout
+- [ ] **CRUD operations** - Test operazioni database
+- [ ] **Notifiche** - Test sistema notifiche
+- [ ] **Prenotazioni** - Test flusso prenotazioni
 
-## 🧹 Technical Debt
+### E2E Tests
+- [ ] **User journeys** - Percorsi utente completi
+- [ ] **Mobile testing** - Test su dispositivi mobili
+- [ ] **Cross-browser** - Test su diversi browser
+- [ ] **Performance** - Test performance
+- [ ] **Accessibility** - Test accessibilità
 
-### Da Risolvere
-- [ ] Ottimizzare query database
-- [ ] Migliorare caching
-- [ ] Aggiungere test unitari
-- [ ] Documentazione API
+## 📚 Documentazione
 
-### Monitoraggio
-- [ ] Setup logging
-- [ ] Monitoraggio errori
-- [ ] Analytics usage
-- [ ] Performance metrics
+### Technical Docs
+- [ ] **API documentation** - Documentazione completa API
+- [ ] **Component docs** - Storybook per componenti
+- [ ] **Architecture docs** - Documentazione architettura
+- [ ] **Deployment guide** - Guida deployment
+- [ ] **Contributing guide** - Guida contributi
 
-## 📊 Progresso Attuale
+### User Docs
+- [ ] **User manual** - Manuale utente completo
+- [ ] **Video tutorials** - Tutorial video
+- [ ] **FAQ** - Domande frequenti
+- [ ] **Best practices** - Best practices per utenti
+- [ ] **Troubleshooting** - Guida risoluzione problemi
 
-### Fondamenta
-- [x] Database: 100%
-- [x] Autenticazione: 100%
-- [x] RLS Policies: 100%
-- [x] CRUD Base: 100%
+## 🔧 DevOps & Infrastructure
 
-### Features
-- [x] Gestione Clienti: 100%
-- [x] Gestione Servizi: 100%
-- [ ] Prenotazioni: 0%
-- [ ] WhatsApp: 0%
-- [ ] Pagamenti: 0%
-- [ ] AI Assistant: 0%
+### CI/CD
+- [ ] **GitHub Actions** - Pipeline CI/CD
+- [ ] **Automated testing** - Test automatici
+- [ ] **Deployment automation** - Deploy automatico
+- [ ] **Environment management** - Gestione ambienti
+- [ ] **Monitoring** - Monitoring e alerting
 
-### UI/UX
-- [x] Layout Base: 100%
-- [x] Componenti Core: 100%
-- [ ] Responsive: 60%
-- [ ] Accessibilità: 40%
+### Performance
+- [ ] **CDN setup** - Content Delivery Network
+- [ ] **Caching strategy** - Strategia caching
+- [ ] **Database optimization** - Ottimizzazione DB
+- [ ] **Image optimization** - Ottimizzazione immagini
+- [ ] **Bundle optimization** - Ottimizzazione bundle
 
-## 📝 Note Aggiuntive
-- Mantenere focus su performance e UX
-- Prioritizzare sicurezza e privacy
-- Documentare tutte le API
-- Mantenere test coverage alta
-- Aggiornare regolarmente dipendenze
+## 📊 Metrics & Monitoring
 
-## Aggiornamenti
-- [x] Refactoring delle sottopagine (clients, services, bookings, ecc.) per rimuovere sidebar, wrapper e <main> duplicati e affidarsi al layout condiviso (in "app/(dashboard)/layout.tsx").
-- [ ] Aggiornare tutti i file di documentazione (PROJECT_CONTEXT, TODO_LIST, CURRENT_STRUCTURE, IMPORTANT_NOTES, FILE_STRUCTURE_PROJECT, DATABASE_SCHEMA_UPDATED, ecc.) per riflettere la nuova struttura e le best practice (sidebar centralizzata, sottopagine "pulite", ecc.) in italiano.
-- [x] Refactoring dashboard: rimozione card servizi, nuova card clienti di oggi con dropdown dettagliata
-- [x] Mostrare per ogni cliente i servizi prenotati oggi (con orario e operatore)
-- [ ] (eventuale) Migliorare ulteriormente la UX con badge stato appuntamento, filtri, ecc.
+### Business Metrics
+- [ ] **User engagement** - Metriche engagement
+- [ ] **Conversion rates** - Tassi conversione
+- [ ] **Retention rates** - Tassi retention
+- [ ] **Revenue tracking** - Tracking revenue
+- [ ] **Customer satisfaction** - NPS e feedback
+
+### Technical Metrics
+- [ ] **Performance monitoring** - Monitoring performance
+- [ ] **Error tracking** - Tracking errori
+- [ ] **Uptime monitoring** - Monitoring uptime
+- [ ] **Security monitoring** - Monitoring sicurezza
+- [ ] **Usage analytics** - Analytics utilizzo
+
+---
+
+**Stato:** 🟡 **In Sviluppo Attivo**  
+**Priorità:** 🎯 **Core Features + AI Integration**  
+**Prossimo Sprint:** 🤖 **AI Chatbot + Pagamenti**

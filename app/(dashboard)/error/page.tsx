@@ -23,15 +23,9 @@ export default function ErrorPage() {
           <h1 className="text-4xl font-bold text-red-600 mb-4">
             Errore di Accesso
           </h1>
-          <p className="text-gray-600 mb-4">
-            C'è stato un problema nel caricamento dei tuoi dati.
-            Questo potrebbe essere dovuto a:
+          <p className="text-gray-600 mb-8">
+            Si è verificato un errore inaspettato. Riprova più tardi.
           </p>
-          <ul className="text-left text-gray-600 mb-6 space-y-2">
-            <li>• Il tuo account non è stato completamente configurato</li>
-            <li>• Non hai ancora un'organizzazione associata</li>
-            <li>• I tuoi dati non sono stati sincronizzati correttamente</li>
-          </ul>
           <div className="space-y-4">
             <button
               onClick={() => router.push('/login')}
@@ -43,6 +37,9 @@ export default function ErrorPage() {
               Verrai reindirizzato automaticamente tra 5 secondi...
             </p>
           </div>
+          <p className="text-sm text-gray-500">
+            Se il problema persiste, contatta il supporto tecnico.
+          </p>
         </div>
       </div>
     </div>
