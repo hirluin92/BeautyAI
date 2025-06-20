@@ -1,7 +1,7 @@
 import OpenAI from 'openai'
-import { ConversationContext, WhatsAppMessage, AIResponse, FunctionResponse } from './types'
-import { SYSTEM_PROMPTS, AI_FUNCTIONS } from './constants'
 import { createClient } from '@/lib/supabase/server'
+import { SYSTEM_PROMPTS, MESSAGE_TEMPLATES } from './constants'
+import { ConversationContext, WhatsAppMessage, AIResponse, FunctionResponse } from './types'
 
 export class ConversationHandler {
   private organizationId: string
@@ -37,7 +37,7 @@ export class ConversationHandler {
 
     // Prepare OpenAI request
     const completion = await this.openai.chat.completions.create({
-      model: 'gpt-4-turbo-preview',
+      model: 'gpt-3.5-turbo',
       messages: [
         {
           role: 'system',
@@ -49,7 +49,120 @@ export class ConversationHandler {
           content: message.text || '',
         },
       ],
-      functions: AI_FUNCTIONS,
+      functions: [
+        {
+          name: 'check_availability',
+          description: 'Controlla la disponibilità per un servizio in una data specifica',
+          parameters: {
+            type: 'object',
+            properties: {
+              service_id: {
+                type: 'string',
+                description: 'ID del servizio richiesto',
+              },
+              date: {
+                type: 'string',
+                description: 'Data richiesta (YYYY-MM-DD)',
+              },
+              preferred_time: {
+                type: 'string',
+                description: 'Orario preferito (opzionale)',
+              },
+            },
+            required: ['service_id', 'date'],
+          },
+        },
+        {
+          name: 'book_appointment',
+          description: 'Prenota un appuntamento per un cliente',
+          parameters: {
+            type: 'object',
+            properties: {
+              client_phone: {
+                type: 'string',
+                description: 'Numero di telefono del cliente',
+              },
+              service_id: {
+                type: 'string',
+                description: 'ID del servizio da prenotare',
+              },
+              datetime: {
+                type: 'string',
+                description: 'Data e ora dell\'appuntamento (ISO string)',
+              },
+              notes: {
+                type: 'string',
+                description: 'Note aggiuntive (opzionale)',
+              },
+            },
+            required: ['client_phone', 'service_id', 'datetime'],
+          },
+        },
+        {
+          name: 'cancel_appointment',
+          description: 'Cancella una prenotazione esistente',
+          parameters: {
+            type: 'object',
+            properties: {
+              booking_id: {
+                type: 'string',
+                description: 'ID della prenotazione da cancellare',
+              },
+              reason: {
+                type: 'string',
+                description: 'Motivo della cancellazione (opzionale)',
+              },
+            },
+            required: ['booking_id'],
+          },
+        },
+        {
+          name: 'get_client_bookings',
+          description: 'Recupera le prenotazioni di un cliente',
+          parameters: {
+            type: 'object',
+            properties: {
+              client_phone: {
+                type: 'string',
+                description: 'Numero di telefono del cliente',
+              },
+              status: {
+                type: 'string',
+                enum: ['upcoming', 'past', 'all'],
+                description: 'Filtro per stato delle prenotazioni',
+              },
+            },
+            required: ['client_phone'],
+          },
+        },
+        {
+          name: 'get_services',
+          description: 'Recupera la lista dei servizi disponibili',
+          parameters: {
+            type: 'object',
+            properties: {
+              category: {
+                type: 'string',
+                description: 'Categoria di servizi (opzionale)',
+              },
+            },
+          },
+        },
+        {
+          name: 'get_service_info',
+          description: 'Recupera informazioni dettagliate su un servizio specifico',
+          parameters: {
+            type: 'object',
+            properties: {
+              service_id: {
+                type: 'string',
+                description: 'ID del servizio',
+              },
+            },
+            required: ['service_id'],
+          },
+        },
+      ],
       function_call: 'auto',
       temperature: 0.7,
       max_tokens: 500,
@@ -84,8 +197,8 @@ export class ConversationHandler {
     return response
   }
 
-  private async executeFunctionCall(functionCall: unknown): Promise<FunctionResponse> {
-    const { name, arguments: args } = functionCall as { name: string; arguments: string }
+  private async executeFunctionCall(functionCall: any): Promise<FunctionResponse> {
+    const { name, arguments: args } = functionCall
     const parsedArgs = JSON.parse(args)
 
     console.log('🔧 Executing function:', name, 'with args:', parsedArgs)
@@ -121,7 +234,7 @@ export class ConversationHandler {
     functionResponse: FunctionResponse
   ): Promise<string> {
     const completion = await this.openai.chat.completions.create({
-      model: 'gpt-4-turbo-preview',
+      model: 'gpt-3.5-turbo',
       messages: [
         {
           role: 'system',
@@ -157,15 +270,14 @@ export class ConversationHandler {
   }
 
   private getQuickReplies(): string[] {
-    if (this.context.state === 'idle') {
-      return [
-        '📅 Prenota appuntamento',
-        '❓ Info servizi',
-        '📋 Le mie prenotazioni',
-        '📞 Contatti',
-      ]
-    }
-    return []
+    return [
+      '📅 Prenota appuntamento',
+      '❓ Info servizi',
+      '📋 Le mie prenotazioni',
+      '🕐 Orari di apertura',
+      '📍 Dove siete?',
+      '💰 Prezzi servizi'
+    ]
   }
 
   private async buildSystemPrompt(): Promise<string> {
@@ -187,10 +299,12 @@ export class ConversationHandler {
 
     const servicesList = services?.map(s => `${s.name} (${s.category})`).join(', ') || 'Nessun servizio disponibile'
 
+    const workingHoursText = typeof organization?.working_hours === 'string' ? organization.working_hours : JSON.stringify(organization?.working_hours) || 'Orari non disponibili'
+
     return SYSTEM_PROMPTS.assistant
       .replace('{organizationName}', organization?.name || 'Centro Estetico')
       .replace('{address}', organization?.address || 'Indirizzo non disponibile')
-      .replace('{workingHours}', typeof organization?.working_hours === 'string' ? organization.working_hours : JSON.stringify(organization?.working_hours) || 'Orari non disponibili')
+      .replace('{workingHours}', workingHoursText)
       .replace('{services}', servicesList)
   }
 
@@ -202,70 +316,376 @@ export class ConversationHandler {
   }
 
   private async loadContext() {
-    // TODO: Implementare quando la tabella ai_conversations sarà disponibile
-    console.log('Loading context - not implemented yet')
+    const supabase = await createClient()
+    
+    // Load chat session from database
+    const { data: session } = await supabase
+      .from('chat_sessions')
+      .select('context, client_id')
+      .eq('organization_id', this.organizationId)
+      .eq('whatsapp_phone', this.sessionId.split('_')[1])
+      .eq('is_active', true)
+      .single()
+
+    if (session && session.context) {
+      // Type assertion for context
+      const contextData = session.context as any
+      this.context = {
+        ...this.context,
+        ...contextData,
+        bookingData: contextData?.bookingData || {},
+      }
+    }
   }
 
   private async saveContext() {
-    // TODO: Implementare quando la tabella ai_conversations sarà disponibile
-    console.log('Saving context - not implemented yet')
+    const supabase = await createClient()
+    
+    // Get or create chat session
+    const whatsappPhone = this.sessionId.split('_')[1]
+    
+    let { data: session } = await supabase
+      .from('chat_sessions')
+      .select('id')
+      .eq('organization_id', this.organizationId)
+      .eq('whatsapp_phone', whatsappPhone)
+      .eq('is_active', true)
+      .maybeSingle()
+
+    if (!session) {
+      // Create new session
+      const { data: newSession } = await supabase
+        .from('chat_sessions')
+        .insert({
+          organization_id: this.organizationId,
+          whatsapp_phone: whatsappPhone,
+          context: this.context as any, // Type assertion for JSON
+        })
+        .select('id')
+        .single()
+      
+      session = newSession
+    } else {
+      // Update existing session
+      await supabase
+        .from('chat_sessions')
+        .update({
+          context: this.context as any, // Type assertion for JSON
+          last_message_at: new Date().toISOString(),
+        })
+        .eq('id', session.id)
+    }
+
+    // Save message to chat_messages
+    if (this.context.messageHistory.length > 0) {
+      const lastMessage = this.context.messageHistory[this.context.messageHistory.length - 1]
+      
+      await supabase
+        .from('chat_messages')
+        .insert({
+          session_id: session!.id,
+          organization_id: this.organizationId,
+          message_type: 'text',
+          content: lastMessage.content,
+          is_from_client: lastMessage.role === 'user',
+        })
+    }
   }
 
   // Function implementations
   private async checkAvailability(args: any): Promise<FunctionResponse> {
-    // TODO: Implement actual availability check
-    console.log('🔍 Checking availability for:', args)
+    const supabase = await createClient()
     
-    return {
-      success: true,
-      data: {
-        available: true,
-        slots: ['09:00', '10:00', '11:00', '14:00', '15:00'],
-        service: 'Massaggio rilassante',
-        date: args.date
+    try {
+      const { service_id, date } = args
+      
+      // Get service details
+      const { data: service } = await supabase
+        .from('services')
+        .select('name, duration_minutes')
+        .eq('id', service_id)
+        .eq('organization_id', this.organizationId)
+        .single()
+
+      if (!service) {
+        return { success: false, error: 'Servizio non trovato' }
       }
+
+      // Get organization working hours
+      const { data: organization } = await supabase
+        .from('organizations')
+        .select('working_hours')
+        .eq('id', this.organizationId)
+        .single()
+
+      const workingHours = organization?.working_hours || {}
+      const dayOfWeek = new Date(date).toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase()
+      const dayHours = (workingHours as any)[dayOfWeek]
+
+      if (!dayHours) {
+        return { 
+          success: true, 
+          data: { 
+            available: false, 
+            reason: 'Giorno non lavorativo',
+            service: service.name,
+            date 
+          }
+        }
+      }
+
+      // Get existing bookings for this date
+      const startOfDay = new Date(date)
+      startOfDay.setHours(0, 0, 0, 0)
+      
+      const endOfDay = new Date(date)
+      endOfDay.setHours(23, 59, 59, 999)
+
+      const { data: existingBookings } = await supabase
+        .from('bookings')
+        .select('start_at, end_at')
+        .eq('organization_id', this.organizationId)
+        .gte('start_at', startOfDay.toISOString())
+        .lte('start_at', endOfDay.toISOString())
+        .not('status', 'in', ['cancelled', 'no_show'])
+
+      // Generate available slots
+      const slots = this.generateTimeSlots(dayHours.open, dayHours.close, service.duration_minutes)
+      const availableSlots = this.filterAvailableSlots(slots, existingBookings || [])
+
+      return {
+        success: true,
+        data: {
+          available: availableSlots.length > 0,
+          slots: availableSlots,
+          service: service.name,
+          date,
+          duration: service.duration_minutes
+        }
+      }
+    } catch (error) {
+      console.error('Error checking availability:', error)
+      return { success: false, error: 'Errore nel controllo disponibilità' }
     }
   }
 
   private async bookAppointment(args: any): Promise<FunctionResponse> {
-    // TODO: Implement actual booking
-    console.log('📅 Booking appointment:', args)
+    const supabase = await createClient()
     
-    return {
-      success: true,
-      data: {
-        booking_id: 'test-booking-123',
-        confirmed: true,
-        datetime: args.datetime
+    try {
+      const { client_phone, service_id, datetime, notes } = args
+      
+      // Find or create client
+      let { data: client } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('organization_id', this.organizationId)
+        .eq('phone', client_phone)
+        .single()
+
+      if (!client) {
+        // Create new client
+        const { data: newClient } = await supabase
+          .from('clients')
+          .insert({
+            organization_id: this.organizationId,
+            phone: client_phone,
+            whatsapp_phone: client_phone,
+            full_name: `Cliente WhatsApp (${client_phone})`,
+          })
+          .select('id')
+          .single()
+        
+        if (!newClient) {
+          return { success: false, error: 'Errore nella creazione cliente' }
+        }
+        
+        client = newClient
       }
+
+      // Get service details
+      const { data: service } = await supabase
+        .from('services')
+        .select('name, duration_minutes, price')
+        .eq('id', service_id)
+        .eq('organization_id', this.organizationId)
+        .single()
+
+      if (!service) {
+        return { success: false, error: 'Servizio non trovato' }
+      }
+
+      // Calculate end time
+      const startAt = new Date(datetime)
+      const endAt = new Date(startAt.getTime() + service.duration_minutes * 60000)
+
+      // Create booking
+      const { data: booking, error } = await supabase
+        .from('bookings')
+        .insert({
+          organization_id: this.organizationId,
+          client_id: client.id,
+          service_id,
+          start_at: startAt.toISOString(),
+          end_at: endAt.toISOString(),
+          price: service.price,
+          notes,
+          source: 'whatsapp',
+          status: 'confirmed',
+        })
+        .select('id, start_at, end_at')
+        .single()
+
+      if (error) {
+        console.error('Error creating booking:', error)
+        return { success: false, error: 'Errore nella creazione prenotazione' }
+      }
+
+      // Update chat session with client_id
+      const whatsappPhone = this.sessionId.split('_')[1]
+      await supabase
+        .from('chat_sessions')
+        .update({ client_id: client.id })
+        .eq('organization_id', this.organizationId)
+        .eq('whatsapp_phone', whatsappPhone)
+
+      return {
+        success: true,
+        data: {
+          booking_id: booking.id,
+          confirmed: true,
+          datetime: booking.start_at,
+          service: service.name,
+          price: service.price
+        }
+      }
+    } catch (error) {
+      console.error('Error booking appointment:', error)
+      return { success: false, error: 'Errore nella prenotazione' }
     }
   }
 
   private async cancelAppointment(args: any): Promise<FunctionResponse> {
-    // TODO: Implement actual cancellation
-    console.log('❌ Cancelling appointment:', args)
+    const supabase = await createClient()
     
-    return {
-      success: true,
-      data: {
-        cancelled: true,
-        booking_id: args.booking_id
+    try {
+      const { booking_id, reason } = args
+      
+      // Get booking details
+      const { data: booking } = await supabase
+        .from('bookings')
+        .select('id, start_at, service_id, client_id')
+        .eq('id', booking_id)
+        .eq('organization_id', this.organizationId)
+        .single()
+
+      if (!booking) {
+        return { success: false, error: 'Prenotazione non trovata' }
       }
+
+      // Check if booking is in the future
+      const now = new Date()
+      const bookingTime = new Date(booking.start_at)
+      
+      if (bookingTime <= now) {
+        return { success: false, error: 'Non è possibile cancellare una prenotazione passata' }
+      }
+
+      // Cancel booking
+      const { error } = await supabase
+        .from('bookings')
+        .update({
+          status: 'cancelled',
+          cancelled_at: new Date().toISOString(),
+          cancellation_reason: reason || 'Cancellazione via WhatsApp',
+        })
+        .eq('id', booking_id)
+
+      if (error) {
+        console.error('Error cancelling booking:', error)
+        return { success: false, error: 'Errore nella cancellazione' }
+      }
+
+      return {
+        success: true,
+        data: {
+          cancelled: true,
+          booking_id,
+          cancelled_at: new Date().toISOString()
+        }
+      }
+    } catch (error) {
+      console.error('Error cancelling appointment:', error)
+      return { success: false, error: 'Errore nella cancellazione' }
     }
   }
 
   private async getClientBookings(args: any): Promise<FunctionResponse> {
-    // TODO: Implement actual client bookings retrieval
-    console.log('📋 Getting client bookings:', args)
+    const supabase = await createClient()
     
-    return {
-      success: true,
-      data: {
-        bookings: [
-          { id: '1', service: 'Massaggio', date: '2024-01-15', time: '10:00' },
-          { id: '2', service: 'Facial', date: '2024-01-20', time: '14:00' }
-        ]
+    try {
+      const { client_phone, status = 'upcoming' } = args
+      
+      // Find client
+      const { data: client } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('organization_id', this.organizationId)
+        .eq('phone', client_phone)
+        .single()
+
+      if (!client) {
+        return { success: false, error: 'Cliente non trovato' }
       }
+
+      // Build query
+      let query = supabase
+        .from('bookings')
+        .select(`
+          id,
+          start_at,
+          end_at,
+          status,
+          price,
+          notes,
+          services(name, category),
+          clients(full_name, phone)
+        `)
+        .eq('organization_id', this.organizationId)
+        .eq('client_id', client.id)
+        .order('start_at', { ascending: true })
+
+      // Filter by status
+      const now = new Date()
+      if (status === 'upcoming') {
+        query = query.gte('start_at', now.toISOString())
+      } else if (status === 'past') {
+        query = query.lt('start_at', now.toISOString())
+      }
+
+      const { data: bookings, error } = await query
+
+      if (error) {
+        console.error('Error getting client bookings:', error)
+        return { success: false, error: 'Errore nel recupero prenotazioni' }
+      }
+
+      return {
+        success: true,
+        data: {
+          bookings: bookings?.map(b => ({
+            id: b.id,
+            date: new Date(b.start_at).toLocaleDateString('it-IT'),
+            time: new Date(b.start_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+            service: (b.services as any)?.name,
+            status: b.status,
+            price: b.price
+          })) || []
+        }
+      }
+    } catch (error) {
+      console.error('Error getting client bookings:', error)
+      return { success: false, error: 'Errore nel recupero prenotazioni' }
     }
   }
 
@@ -313,5 +733,48 @@ export class ConversationHandler {
       success: true,
       data: { service }
     }
+  }
+
+  // Helper methods
+  private generateTimeSlots(openTime: string, closeTime: string, durationMinutes: number): string[] {
+    const slots: string[] = []
+    const [openHour, openMin] = openTime.split(':').map(Number)
+    const [closeHour, closeMin] = closeTime.split(':').map(Number)
+    
+    let currentHour = openHour
+    let currentMin = openMin
+    
+    while (currentHour < closeHour || (currentHour === closeHour && currentMin < closeMin)) {
+      const timeString = `${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`
+      slots.push(timeString)
+      
+      // Add duration
+      currentMin += durationMinutes
+      while (currentMin >= 60) {
+        currentMin -= 60
+        currentHour += 1
+      }
+    }
+    
+    return slots
+  }
+
+  private filterAvailableSlots(slots: string[], existingBookings: any[]): string[] {
+    const bookedTimes = new Set()
+    
+    existingBookings.forEach(booking => {
+      const start = new Date(booking.start_at)
+      const end = new Date(booking.end_at)
+      
+      // Mark all times in this booking as unavailable
+      const current = new Date(start)
+      while (current < end) {
+        const timeString = current.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+        bookedTimes.add(timeString)
+        current.setMinutes(current.getMinutes() + 15) // 15-minute intervals
+      }
+    })
+    
+    return slots.filter(slot => !bookedTimes.has(slot))
   }
 } 
