@@ -1,7 +1,7 @@
 // components/bookings/client-booking-history.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
@@ -13,22 +13,23 @@ interface Props {
 }
 
 export default function ClientBookingHistory({ clientId, excludeBookingId }: Props) {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [bookings, setBookings] = useState<any[]>([])
 
-  useEffect(() => {
-    const load = async () => {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select('id, start_at, status')
-        .eq('client_id', clientId)
-        .neq('id', excludeBookingId || '')
-        .order('start_at', { ascending: false })
+  const load = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('id, start_at, status')
+      .eq('client_id', clientId)
+      .neq('id', excludeBookingId || '')
+      .order('start_at', { ascending: false })
 
-      if (!error && data) setBookings(data)
-    }
+    if (!error && data) setBookings(data)
+  }, [supabase, clientId, excludeBookingId])
+
+  useEffect(() => {
     load()
-  }, [clientId, excludeBookingId])
+  }, [load])
 
   if (!bookings.length) return <p className="text-sm text-gray-500">Nessuna altra prenotazione trovata.</p>
 

@@ -21,9 +21,10 @@ const eslintConfig = [
       "@typescript-eslint/no-empty-object-type": "warn",
       "@typescript-eslint/ban-ts-comment": "warn",
       
-      // 🎯 Mantieni questi come errori (critici)
-      "@typescript-eslint/no-duplicate-imports": "error",
+      // 🎯 Regole valide per il cleanup
       "no-console": "off", // Per debug
+      "prefer-const": "warn",
+      "no-var": "error",
     }
   }
 ];

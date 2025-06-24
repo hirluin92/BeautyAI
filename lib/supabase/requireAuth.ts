@@ -1,24 +1,28 @@
 // lib/supabase/requireAuth.ts - FUNZIONE STANDARDIZZATA
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { User } from '@supabase/supabase-js'
+import { SupabaseClient } from '@supabase/supabase-js'
+
+export interface UserData {
+  id: string
+  email: string
+  full_name: string
+  organization_id: string
+  role: 'owner' | 'staff' | 'admin'
+  is_active: boolean
+  organization: {
+    id: string
+    name: string
+    slug: string
+    plan_type: string
+  }
+}
 
 export interface RequireAuthResponse {
-  user: any
-  userData: {
-    id: string
-    email: string
-    full_name: string
-    organization_id: string
-    role: 'owner' | 'staff' | 'admin'
-    is_active: boolean
-    organization: {
-      id: string
-      name: string
-      slug: string
-      plan_type: string
-    }
-  }
-  supabase: any
+  user: User
+  userData: UserData
+  supabase: SupabaseClient
 }
 
 /**
@@ -166,7 +170,7 @@ export async function requireStaffAuth() {
 }
 
 // Helper functions for role-based authorization
-export function requireRole(userData: any, requiredRoles: string[]) {
+export function requireRole(userData: UserData, requiredRoles: string[]) {
   if (!userData || !userData.role) {
     throw new Error('User role not found')
   }
@@ -178,20 +182,20 @@ export function requireRole(userData: any, requiredRoles: string[]) {
   return true
 }
 
-export function requireOwner(userData: any) {
+export function requireOwner(userData: UserData) {
   return requireRole(userData, ['owner'])
 }
 
-export function requireAdmin(userData: any) {
+export function requireAdmin(userData: UserData) {
   return requireRole(userData, ['owner', 'admin'])
 }
 
-export function requireStaff(userData: any) {
+export function requireStaff(userData: UserData) {
   return requireRole(userData, ['owner', 'admin', 'staff'])
 }
 
 // Helper per verificare se l'utente può gestire un'altra organizzazione
-export function canManageOrganization(userData: any, targetOrgId: string) {
+export function canManageOrganization(userData: UserData, targetOrgId: string) {
   if (!userData || !userData.organization_id) {
     return false
   }

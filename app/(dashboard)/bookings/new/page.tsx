@@ -7,7 +7,7 @@ export default async function NewBookingPage() {
   // Fetch initial data
   const { data: services } = await supabase
     .from('services')
-    .select('id, name, duration_minutes, price')
+    .select('id, name, duration_minutes, price, category')
     .eq('organization_id', userData.organization_id)
     .eq('is_active', true)
     .order('name')
@@ -21,7 +21,7 @@ export default async function NewBookingPage() {
 
   const { data: clients } = await supabase
     .from('clients')
-    .select('id, full_name, phone')
+    .select('id, full_name, phone, email')
     .eq('organization_id', userData.organization_id)
     .order('full_name')
 

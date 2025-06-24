@@ -3,9 +3,9 @@
 import BookingForm from '@/components/bookings/booking-form'
 import { Database } from '@/types/database'
 
-type Service = Database['public']['Tables']['services']['Row']
-type Staff = Database['public']['Tables']['staff']['Row']
-type Client = Database['public']['Tables']['clients']['Row']
+type PartialService = Pick<Database['public']['Tables']['services']['Row'], 'id' | 'name' | 'duration_minutes' | 'price' | 'category'>
+type PartialStaff = Pick<Database['public']['Tables']['staff']['Row'], 'id' | 'full_name'>
+type PartialClient = Pick<Database['public']['Tables']['clients']['Row'], 'id' | 'full_name' | 'phone' | 'email'>
 type UserWithOrganization = {
   id: string
   email: string
@@ -22,9 +22,9 @@ type UserWithOrganization = {
 }
 
 interface NewBookingClientProps {
-  services: Service[]
-  staff: Staff[]
-  clients: Client[]
+  services: PartialService[]
+  staff: PartialStaff[]
+  clients: PartialClient[]
   userData: UserWithOrganization
 }
 

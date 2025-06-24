@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -9,33 +9,71 @@ import { Bell, Mail, MessageSquare, Clock, CheckCircle, XCircle } from 'lucide-r
 import { NotificationService } from '@/lib/notifications/notification.service'
 import { toast } from 'sonner'
 
+interface NotificationBooking {
+  id: string
+  start_at: string
+  price?: number
+  notification_preferences?: {
+    email: boolean
+    sms: boolean
+    whatsapp: boolean
+  }
+  client: {
+    full_name: string
+    email: string
+    phone: string
+    notification_preferences?: {
+      email: boolean
+      sms: boolean
+      whatsapp: boolean
+    }
+  }
+  service: {
+    name: string
+    duration_minutes: number
+    price: number
+  }
+  staff?: {
+    full_name: string
+  }
+}
+
 export function NotificationsDashboard() {
-  const [pendingNotifications, setPendingNotifications] = useState<any[]>([])
-  const [sentNotifications, setSentNotifications] = useState<any[]>([])
+  const [pendingNotifications, setPendingNotifications] = useState<NotificationBooking[]>([])
+  const [sentNotifications, setSentNotifications] = useState<NotificationBooking[]>([])
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState<string | null>(null)
   
-  // Mock config - in production this should come from environment variables
-  const notificationConfig = {
+  const notificationConfig = useMemo(() => ({
     emailjs: {
       serviceId: process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || '',
       templateId: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || '',
       publicKey: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || ''
     },
-    twilio: {
+    email: {
+      enabled: true,
+      provider: 'resend',
+      apiKey: process.env.NEXT_PUBLIC_RESEND_API_KEY || ''
+    },
+    sms: {
+      enabled: true,
+      provider: 'twilio',
       accountSid: process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID || '',
       authToken: process.env.NEXT_PUBLIC_TWILIO_AUTH_TOKEN || '',
-      phoneNumber: process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER || ''
+      fromNumber: process.env.NEXT_PUBLIC_TWILIO_FROM_NUMBER || ''
+    },
+    whatsapp: {
+      enabled: true,
+      provider: 'twilio',
+      accountSid: process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID || '',
+      authToken: process.env.NEXT_PUBLIC_TWILIO_AUTH_TOKEN || '',
+      fromNumber: process.env.NEXT_PUBLIC_TWILIO_WHATSAPP_NUMBER || ''
     }
-  }
+  }), [])
   
-  const notificationService = new NotificationService(notificationConfig)
+  const notificationService = useMemo(() => new NotificationService(notificationConfig), [notificationConfig])
 
-  useEffect(() => {
-    loadNotifications()
-  }, [])
-
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     try {
       // Carica notifiche da inviare
       const pending = await notificationService.getBookingsNeedingReminders('reminder_24h')
@@ -48,9 +86,13 @@ export function NotificationsDashboard() {
       toast.error('Errore caricamento notifiche')
       setLoading(false)
     }
-  }
+  }, [notificationService])
 
-  const sendNotification = async (booking: any, type: 'reminder_24h' | 'reminder_1h') => {
+  useEffect(() => {
+    loadNotifications()
+  }, [loadNotifications])
+
+  const sendNotification = async (booking: NotificationBooking, type: 'reminder_24h' | 'reminder_1h') => {
     setSending(booking.id)
     
     try {
@@ -274,8 +316,7 @@ export function NotificationsDashboard() {
             <div>
               <p className="font-medium">WhatsApp Semi-Automatico</p>
               <p className="text-sm text-gray-600">
-                Clicca "Invia Promemoria" e si aprirà WhatsApp con il messaggio già pronto. 
-                Devi solo premere invio.
+                Clicca &quot;Invia Promemoria&quot; e si aprirà WhatsApp con il messaggio già pronto.
               </p>
             </div>
           </div>

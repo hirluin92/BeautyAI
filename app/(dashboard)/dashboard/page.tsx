@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default async function DashboardPage() {
   // ✅ USA requireAuth STANDARDIZZATO
-  const { user, userData, supabase } = await requireAuth()
+  const { userData } = await requireAuth()
 
   console.log('✅ Dashboard loaded for:', userData.full_name)
   console.log('🏢 Organization:', userData.organization.name)

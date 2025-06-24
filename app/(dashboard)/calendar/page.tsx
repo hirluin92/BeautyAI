@@ -29,7 +29,7 @@ export default async function CalendarPage() {
 
   const { data: services } = await supabase
     .from('services')
-    .select('id, name')
+    .select('id, name, duration_minutes, price')
     .eq('organization_id', userData.organization_id)
     .eq('is_active', true)
     .order('name')

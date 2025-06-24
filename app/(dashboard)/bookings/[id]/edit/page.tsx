@@ -29,7 +29,7 @@ export default async function EditBookingPage({ params }: DynamicPageProps<{ id:
   // Fetch services and staff for select options
   const { data: services } = await supabase
     .from('services')
-    .select('id, name, duration_minutes, price')
+    .select('id, name, duration_minutes, price, category')
     .eq('organization_id', userData.organization_id)
     .eq('is_active', true)
     .order('name')

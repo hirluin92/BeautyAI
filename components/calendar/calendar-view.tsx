@@ -17,7 +17,9 @@ import {
   subMonths,
   addDays,
   subDays,
-  isSameMonth
+  isSameMonth,
+  startOfDay,
+  endOfDay
 } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { createClient } from '@/lib/supabase/client'
@@ -110,8 +112,8 @@ function CalendarEvent({
     setLocalEndAt(booking.end_at)
   }, [booking.start_at, booking.end_at])
 
-  const startDate = new Date(localStartAt)
-  const endDate = new Date(localEndAt)
+  const startDate = useMemo(() => new Date(localStartAt), [localStartAt])
+  const endDate = useMemo(() => new Date(localEndAt), [localEndAt])
 
   // Utility functions
   const minutesPerPixel = 60 / CALENDAR_CONFIG.HOUR_HEIGHT
@@ -429,7 +431,7 @@ function CalendarEvent({
     
     document.addEventListener('mousemove', handleMouseMove)
     document.addEventListener('mouseup', handleMouseUp)
-  }, [booking, startDate, endDate, isDragging, getEventStyle, pixelsToTime, checkOverlap, onUpdate])
+  }, [booking, startDate, endDate, isDragging, getEventStyle, pixelsToTime, checkOverlap, onUpdate, localStartAt, localEndAt])
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     // Only trigger click if no interaction is active and no movement occurred
@@ -737,13 +739,14 @@ export default function CalendarView({
       const result = await response.json()
       console.log('✅ Update successful:', result)
       // Non serve refresh qui, la UI è già aggiornata
-    } catch (error: any) {
+    } catch (error: unknown) {
       // In caso di errore, fai il refresh per riallineare la UI
       if (typeof refreshBookings === 'function') {
         refreshBookings()
       }
+      const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto'
       console.error('💥 Error updating booking:', error)
-      alert(`Errore nell'aggiornamento: ${error?.message || 'Errore sconosciuto'}`)
+      alert(`Errore nell'aggiornamento: ${errorMessage}`)
       throw error // Re-throw per gestire il rollback nello stato locale
     }
   }

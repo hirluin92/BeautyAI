@@ -145,7 +145,7 @@ export default function ClientsSearch({
             <span>Filtri attivi:</span>
             {search && (
               <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded">
-                Ricerca: "{search}"
+                Ricerca: &quot;{search}&quot;
                 <button 
                   onClick={() => setSearch('')}
                   className="ml-1 hover:text-blue-900"

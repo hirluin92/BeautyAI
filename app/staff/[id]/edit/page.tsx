@@ -11,7 +11,7 @@ export default async function EditStaffPage({ params }: DynamicPageProps<{ id: s
   const { id } = await params
 
   // Get staff member
-  const { data: staff, error } = await supabase
+  const { data: staff } = await supabase
     .from('staff')
     .select('*')
     .eq('id', id)

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Edit, Trash2, Plus, Search, Filter, User, Mail, Phone } from 'lucide-react'
@@ -30,11 +30,7 @@ export default function StaffTable({
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
 
-  useEffect(() => {
-    loadStaff()
-  }, [organizationId])
-
-  const loadStaff = async () => {
+  const loadStaff = useCallback(async () => {
     try {
       setLoading(true)
       const { data, error } = await supabase
@@ -46,13 +42,18 @@ export default function StaffTable({
       if (error) throw error
 
       setStaff(data || [])
-    } catch (error: any) {
-      setError(error.message)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto'
+      setError(errorMessage)
       toast.error('Errore nel caricamento dello staff')
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase, organizationId])
+
+  useEffect(() => {
+    loadStaff()
+  }, [loadStaff])
 
   const handleDelete = async (staffId: string) => {
     if (!confirm('Sei sicuro di voler eliminare questo membro dello staff?')) {
@@ -69,7 +70,7 @@ export default function StaffTable({
 
       toast.success('Staff eliminato con successo')
       loadStaff()
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Errore nell\'eliminazione dello staff')
     }
   }

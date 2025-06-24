@@ -9,7 +9,6 @@ import {
   User, 
   Calendar,
   Filter,
-  Search,
   RefreshCw
 } from 'lucide-react'
 

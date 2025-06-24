@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -38,28 +38,9 @@ export default function TestAIPage() {
   const [services, setServices] = useState<Service[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
-  useEffect(() => {
-    loadOrganizations()
-  }, [])
-
-  useEffect(() => {
-    if (selectedOrg) {
-      loadServices()
-      loadChatHistory()
-    }
-  }, [selectedOrg, phoneNumber])
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  const loadOrganizations = async () => {
+  const loadOrganizations = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('organizations')
@@ -71,9 +52,9 @@ export default function TestAIPage() {
     } catch (error) {
       console.error('Error loading organizations:', error)
     }
-  }
+  }, [supabase])
 
-  const loadServices = async () => {
+  const loadServices = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('services')
@@ -86,9 +67,9 @@ export default function TestAIPage() {
     } catch (error) {
       console.error('Error loading services:', error)
     }
-  }
+  }, [supabase, selectedOrg])
 
-  const loadChatHistory = async () => {
+  const loadChatHistory = useCallback(async () => {
     try {
       const response = await fetch(
         `/api/whatsapp/test?organizationId=${selectedOrg}&phoneNumber=${phoneNumber}`
@@ -107,6 +88,25 @@ export default function TestAIPage() {
     } catch (error) {
       console.error('Error loading chat history:', error)
     }
+  }, [selectedOrg, phoneNumber])
+
+  useEffect(() => {
+    loadOrganizations()
+  }, [loadOrganizations, supabase])
+
+  useEffect(() => {
+    if (selectedOrg) {
+      loadServices()
+      loadChatHistory()
+    }
+  }, [selectedOrg, loadServices, loadChatHistory])
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
   const sendMessage = async () => {

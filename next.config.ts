@@ -9,11 +9,11 @@ const nextConfig: NextConfig = {
   // 🚨 TEMPORANEO: Abilita per permettere il build mentre risolvi gli errori
   typescript: {
     // Cambia a false quando hai risolto tutti gli errori TS
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   eslint: {
     // Cambia a false quando hai risolto tutti gli errori ESLint
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   
   // ✅ Configurazioni di performance

@@ -3,6 +3,17 @@ import { requireAuth } from '@/lib/supabase/requireAuth'
 import ServiceDetailClient from './ServiceDetailClient'
 import { DynamicPageProps } from '@/lib/utils'
 
+interface ServiceBooking {
+  id: string
+  start_at: string
+  price?: number
+  status: string
+  client: {
+    id: string
+    full_name: string
+  }[]
+}
+
 export default async function ServiceDetailPage({ params }: DynamicPageProps<{ id: string }>) {
   const { userData, supabase } = await requireAuth()
   
@@ -34,12 +45,12 @@ export default async function ServiceDetailPage({ params }: DynamicPageProps<{ i
     .limit(10)
 
   // Calculate total revenue
-  const totalRevenue = bookings?.reduce((sum: number, booking: any) => sum + (booking.price || 0), 0) || 0
+  const totalRevenue = bookings?.reduce((sum: number, booking: ServiceBooking) => sum + (booking.price || 0), 0) || 0
 
   return (
     <ServiceDetailClient 
       service={service} 
-      bookings={bookings || []} 
+      bookings={bookings as any || []} 
       totalRevenue={totalRevenue}
     />
   )

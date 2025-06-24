@@ -16,6 +16,7 @@ import {
 import { Database as DatabaseType } from '@/types/database'
 
 type User = DatabaseType['public']['Tables']['users']['Row']
+type PartialUser = Pick<User, 'id' | 'is_active'>
 
 interface AdminStats {
   totalUsers: number
@@ -50,7 +51,7 @@ export default async function AdminPanelPage() {
 
   if (usersResponse.data && orgsResponse.data) {
     stats.totalUsers = usersResponse.data.length
-    stats.activeUsers = usersResponse.data.filter((user: User) => user.is_active).length
+    stats.activeUsers = usersResponse.data.filter((user: PartialUser) => user.is_active).length
     stats.totalOrganizations = orgsResponse.data.length
   }
 

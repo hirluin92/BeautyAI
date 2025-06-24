@@ -75,7 +75,7 @@ export function BookingActions({ bookingId, currentStatus, onStatusChange }: Boo
           break
         case 'no_show':
           toast.warning('Segnato come No Show', {
-            description: 'Il cliente non si è presentato all\'appuntamento'
+            description: 'Il cliente non si è presentato all&apos;appuntamento'
           })
           break
         case 'cancel':
@@ -93,10 +93,11 @@ export function BookingActions({ bookingId, currentStatus, onStatusChange }: Boo
         window.location.reload();
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Si è verificato un errore'
       console.error(`Error performing ${action}:`, error)
       toast.error(`Errore durante l'operazione`, {
-        description: error.message || 'Si è verificato un errore'
+        description: errorMessage
       })
     } finally {
       setLoading(null)
@@ -198,7 +199,7 @@ export function BookingActions({ bookingId, currentStatus, onStatusChange }: Boo
           <AlertDialogHeader>
             <AlertDialogTitle>Segnala No Show</AlertDialogTitle>
             <AlertDialogDescription>
-              Il cliente non si è presentato all'appuntamento? Questo verrà registrato nel suo storico.
+              Il cliente non si è presentato all&apos;appuntamento? Questo verrà registrato nel suo storico.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

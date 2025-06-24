@@ -33,15 +33,15 @@ export default function ServicesSearch({
 
   useEffect(() => {
     onSearch(search)
-  }, [search])
+  }, [search, onSearch])
 
   useEffect(() => {
     onCategoryChange(category)
-  }, [category])
+  }, [category, onCategoryChange])
 
   useEffect(() => {
     onStatusChange(status)
-  }, [status])
+  }, [status, onStatusChange])
 
   // Debounced search
   useEffect(() => {

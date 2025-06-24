@@ -4,17 +4,6 @@ import WhitelistClient from './whitelist-client'
 // Type definitions
 type ContactType = 'friend' | 'family' | 'employee' | 'partner' | 'vip'
 
-interface WhitelistContact {
-  id: string
-  phone_number: string
-  contact_name: string
-  contact_type: ContactType
-  notes: string
-  is_active: boolean
-  created_at: string
-  updated_at: string
-}
-
 export default async function WhitelistPage() {
   const { userData, supabase } = await requireAuth()
 

@@ -41,8 +41,9 @@ export default function ClientQuickAddModal({ organizationId, onClose, onClientC
       if (error) throw error
 
       onClientCreated(data.id)
-    } catch (error: any) {
-      setError(error.message || 'Errore durante la creazione del cliente')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Errore durante la creazione del cliente'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

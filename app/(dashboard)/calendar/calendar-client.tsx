@@ -16,15 +16,15 @@ type BookingWithRelations = Database['public']['Tables']['bookings']['Row'] & {
   staff: Database['public']['Tables']['staff']['Row'] | null
 }
 
-type Service = Database['public']['Tables']['services']['Row']
-type Staff = Database['public']['Tables']['staff']['Row']
+type PartialService = Pick<Database['public']['Tables']['services']['Row'], 'id' | 'name' | 'duration_minutes' | 'price'>
+type PartialStaff = Pick<Database['public']['Tables']['staff']['Row'], 'id' | 'full_name'>
 type User = Database['public']['Tables']['users']['Row']
 
 interface CalendarClientProps {
   initialData: {
     bookings: BookingWithRelations[]
-    services: Service[]
-    staff: Staff[]
+    services: PartialService[]
+    staff: PartialStaff[]
     currentUser: User
     organizationId: string
   }

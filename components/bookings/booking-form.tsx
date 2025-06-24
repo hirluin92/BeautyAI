@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -184,14 +184,7 @@ export default function BookingForm({
     setSelectedService(service || null)
   }, [selectedServiceId, services])
 
-  // Load booking data if in edit mode
-  useEffect(() => {
-    if (mode === 'edit' && bookingId) {
-      loadBooking()
-    }
-  }, [bookingId, mode])
-
-  const loadBooking = async () => {
+  const loadBooking = useCallback(async () => {
     if (!bookingId) return
 
     const { data, error } = await supabase
@@ -215,18 +208,9 @@ export default function BookingForm({
       notes: data.notes || '',
       status: data.status || 'confirmed', // Ensure status is never undefined
     })
-  }
+  }, [bookingId, supabase, reset])
 
-  // Check availability when date/time/staff changes
-  useEffect(() => {
-    const date = watch('date')
-    const time = watch('time')
-    if (date && time && selectedService && selectedStaffId) {
-      checkAvailability()
-    }
-  }, [watch('date'), watch('time'), selectedStaffId, selectedService])
-
-  const checkAvailability = async () => {
+  const checkAvailability = useCallback(async () => {
     if (!selectedService || !selectedStaffId) {
       setAvailabilityError(null)
       return
@@ -262,7 +246,23 @@ export default function BookingForm({
     } finally {
       setCheckingAvailability(false)
     }
-  }
+  }, [selectedService, selectedStaffId, watch, supabase, organizationId, mode, bookingId])
+
+  // Load booking data when component mounts or bookingId changes
+  useEffect(() => {
+    if (mode === 'edit' && bookingId) {
+      loadBooking()
+    }
+  }, [mode, bookingId, loadBooking])
+
+  // Check availability when date/time/staff changes
+  useEffect(() => {
+    const date = watch('date')
+    const time = watch('time')
+    if (date && time && selectedService && selectedStaffId) {
+      checkAvailability()
+    }
+  }, [watch, selectedStaffId, selectedService, checkAvailability])
 
   const onSubmit = async (data: BookingFormData) => {
     if (availabilityError) {
@@ -324,9 +324,10 @@ export default function BookingForm({
         }
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Errore nel salvataggio della prenotazione'
       console.error('Error saving booking:', error)
-      setError(error.message || 'Errore nel salvataggio della prenotazione')
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

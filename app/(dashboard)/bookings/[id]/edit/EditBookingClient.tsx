@@ -8,8 +8,8 @@ type BookingWithRelations = Database['public']['Tables']['bookings']['Row'] & {
   staff: Database['public']['Tables']['staff']['Row'] | null
 }
 
-type Service = Database['public']['Tables']['services']['Row']
-type Staff = Database['public']['Tables']['staff']['Row']
+type PartialService = Pick<Database['public']['Tables']['services']['Row'], 'id' | 'name' | 'duration_minutes' | 'price' | 'category'>
+type PartialStaff = Pick<Database['public']['Tables']['staff']['Row'], 'id' | 'full_name'>
 type UserWithOrganization = {
   id: string
   email: string
@@ -27,8 +27,8 @@ type UserWithOrganization = {
 
 interface EditBookingClientProps {
   booking: BookingWithRelations
-  services: Service[]
-  staff: Staff[]
+  services: PartialService[]
+  staff: PartialStaff[]
   userData: UserWithOrganization
 }
 
