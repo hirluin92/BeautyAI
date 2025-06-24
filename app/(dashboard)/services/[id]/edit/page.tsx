@@ -2,9 +2,15 @@ import { notFound } from 'next/navigation'
 import { requireAuth } from '@/lib/supabase/requireAuth'
 import EditServiceClient from './EditServiceClient'
 
-export default async function EditServicePage({ params }: { params: { id: string } }) {
+interface EditServicePageProps {
+  params: Promise<{ id: string }>
+}
+
+export default async function EditServicePage({ params }: EditServicePageProps) {
   const { userData, supabase } = await requireAuth()
-  const { id } = params
+  
+  // ✅ FIXED: await params per Next.js 15
+  const { id } = await params
 
   // Fetch service data server-side
   const { data: service, error } = await supabase

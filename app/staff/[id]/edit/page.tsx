@@ -2,21 +2,19 @@ import { notFound } from 'next/navigation'
 import { requireAuth } from '@/lib/supabase/requireAuth'
 import StaffForm from '@/components/staff/staff-form'
 import React from 'react'
+import { DynamicPageProps } from '@/lib/utils'
 
-interface EditStaffPageProps {
-  params: {
-    id: string
-  }
-}
-
-export default async function EditStaffPage({ params }: EditStaffPageProps) {
+export default async function EditStaffPage({ params }: DynamicPageProps<{ id: string }>) {
   const { userData, supabase } = await requireAuth()
+  
+  // ✅ FIXED: await params per Next.js 15
+  const { id } = await params
 
   // Get staff member
   const { data: staff, error } = await supabase
     .from('staff')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .eq('organization_id', userData.organization_id)
     .single()
 

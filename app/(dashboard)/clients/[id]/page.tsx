@@ -1,10 +1,13 @@
 import { notFound } from 'next/navigation'
 import { requireAuth } from '@/lib/supabase/requireAuth'
 import ClientDetailClient from './ClientDetailClient'
+import { ClientDetailPageProps } from '@/lib/utils'
 
-export default async function ClientDetailPage({ params }: { params: { id: string } }) {
+export default async function ClientDetailPage({ params }: ClientDetailPageProps) {
   const { userData, supabase } = await requireAuth()
-  const { id } = params
+  
+  // ✅ FIXED: await params per Next.js 15
+  const { id } = await params
 
   // Fetch client with details
   const { data: client, error: clientError } = await supabase
@@ -27,6 +30,6 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
     .order('start_at', { ascending: false })
 
   return (
-    <ClientDetailClient client={client} bookings={bookings || []} userData={userData} />
+    <ClientDetailClient client={client} bookings={bookings || []} />
   )
 }

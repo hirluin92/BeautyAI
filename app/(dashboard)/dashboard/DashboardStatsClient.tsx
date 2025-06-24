@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Users, Calendar, DollarSign, Package, Clock, ChevronDown, ChevronUp, TrendingUp, Eye } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -53,7 +53,7 @@ export default function DashboardStatsClient({ organizationId }: DashboardStatsC
   const [refreshing, setRefreshing] = useState(false)
 
   // Fetch dashboard stats
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await fetch(`/api/dashboard/stats?organizationId=${organizationId}`)
       if (response.ok) {
@@ -67,14 +67,14 @@ export default function DashboardStatsClient({ organizationId }: DashboardStatsC
       console.error('Error fetching dashboard stats:', error)
       setStats(prev => ({ ...prev, loading: false }))
     }
-  }
+  }, [organizationId])
 
   // Auto-refresh ogni 5 minuti
   useEffect(() => {
     fetchStats()
     const interval = setInterval(fetchStats, 5 * 60 * 1000) // 5 minuti
     return () => clearInterval(interval)
-  }, [organizationId])
+  }, [fetchStats])
 
   // Manual refresh
   const handleRefresh = async () => {

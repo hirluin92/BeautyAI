@@ -1,10 +1,13 @@
 import { notFound } from 'next/navigation'
 import { requireAuth } from '@/lib/supabase/requireAuth'
 import ClientBookingsClient from './ClientBookingsClient'
+import { DynamicPageProps } from '@/lib/utils'
 
-export default async function ClientBookingsPage({ params }: { params: { id: string } }) {
+export default async function ClientBookingsPage({ params }: DynamicPageProps<{ id: string }>) {
   const { userData, supabase } = await requireAuth()
-  const { id } = params
+  
+  // ✅ FIXED: await params per Next.js 15
+  const { id } = await params
 
   // Get client data
   const { data: client, error: clientError } = await supabase

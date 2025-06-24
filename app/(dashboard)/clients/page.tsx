@@ -1,19 +1,54 @@
 import { requireAuth } from '@/lib/supabase/requireAuth'
 import Link from 'next/link'
-import { Plus, Upload, Download } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import ClientsTable from '@/components/clients/clients-table'
 import ClientsSearch from '@/components/clients/clients-search'
 import { Button } from '@/components/ui/button'
+import { 
+  getSearchParamValue, 
+  getSearchParamArray, 
+  getSearchParamNumber,
+  SearchablePageProps 
+} from '@/lib/utils'
 
-export default async function ClientsPage() {
+export default async function ClientsPage({ 
+  searchParams 
+}: SearchablePageProps) {
   const { userData, supabase } = await requireAuth()
+  
+  // ✅ FIXED: await searchParams per Next.js 15
+  const resolvedSearchParams = await searchParams
+  
+  // Safe parameter extraction
+  const search = getSearchParamValue(resolvedSearchParams, 'search', '')
+  const tags = getSearchParamArray(resolvedSearchParams, 'tags')
+  const page = getSearchParamNumber(resolvedSearchParams, 'page', 1)
 
-  // Fetch clients data server-side
-  const { data: clientsData, error, count } = await supabase
+  // Fetch clients data server-side with search and filters
+  let query = supabase
     .from('clients')
     .select('*', { count: 'exact' })
     .eq('organization_id', userData.organization_id)
+
+  // Apply search filter
+  if (search) {
+    query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`)
+  }
+
+  // Apply tags filter (if implemented)
+  if (tags.length > 0) {
+    // TODO: Implement tags filtering when tags field is added
+    console.log('Tags filtering not yet implemented:', tags)
+  }
+
+  // Apply pagination
+  const itemsPerPage = 10
+  const from = (page - 1) * itemsPerPage
+  const to = from + itemsPerPage - 1
+
+  const { data: clientsData, error, count } = await query
     .order('created_at', { ascending: false })
+    .range(from, to)
 
   if (error) {
     console.error('Error fetching clients:', error)
@@ -133,8 +168,8 @@ export default async function ClientsPage() {
       {/* Search and Filters */}
       <div className="bg-white p-6 rounded-lg border">
         <ClientsSearch 
-          initialSearch=""
-          initialTags={[]}
+          initialSearch={search}
+          initialTags={tags}
         />
       </div>
 
@@ -142,8 +177,8 @@ export default async function ClientsPage() {
       <div className="bg-white rounded-lg border">
         <ClientsTable 
           clients={clients}
-          currentPage={1}
-          totalPages={Math.ceil(totalCount / 10)}
+          currentPage={page}
+          totalPages={Math.ceil(totalCount / itemsPerPage)}
           totalCount={totalCount}
         />
       </div>

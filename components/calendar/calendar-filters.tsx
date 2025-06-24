@@ -18,7 +18,7 @@ interface CalendarFiltersProps {
       end: Date | null
     }
   }
-  onFilterChange: (key: string, value: any) => void
+  onFilterChange: (key: string, value: unknown) => void
   onResetFilters: () => void
   activeFiltersCount: number
   currentUser?: { id: string; full_name: string }

@@ -158,8 +158,9 @@ export default function ClientForm({
         }, 1000)
       }
 
-    } catch (error: any) {
-      setError(error.message || 'Errore durante il salvataggio')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Errore durante il salvataggio'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

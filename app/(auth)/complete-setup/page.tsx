@@ -1,25 +1,20 @@
 // app/(auth)/complete-setup/page.tsx - NUOVA PAGINA
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export default function CompleteSetupPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [user, setUser] = useState<any>(null)
   const [organizationName, setOrganizationName] = useState('')
   const [fullName, setFullName] = useState('')
   const [completing, setCompleting] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
-  useEffect(() => {
-    checkUser()
-  }, [])
-
-  const checkUser = async () => {
+  const checkUser = useCallback(async () => {
     try {
       console.log('🔍 Complete Setup - Checking user...')
       
@@ -32,7 +27,6 @@ export default function CompleteSetupPage() {
       }
 
       console.log('✅ User found:', user.id)
-      setUser(user)
       setFullName(user.user_metadata?.full_name || user.email || '')
 
       // Verifica se l'utente esiste già nel database
@@ -57,7 +51,11 @@ export default function CompleteSetupPage() {
       setError('Errore durante la verifica utente')
       setLoading(false)
     }
-  }
+  }, [router, supabase])
+
+  useEffect(() => {
+    checkUser()
+  }, [checkUser])
 
   const handleCompleteSetup = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -87,9 +85,10 @@ export default function CompleteSetupPage() {
       console.log('✅ Setup completed successfully')
       router.push('/dashboard/dashboard')
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Errore durante il completamento setup'
       console.error('❌ Setup error:', error)
-      setError(error.message || 'Errore durante il completamento setup')
+      setError(errorMessage)
     } finally {
       setCompleting(false)
     }
@@ -182,7 +181,7 @@ export default function CompleteSetupPage() {
               disabled={completing}
             />
             <p className="mt-1 text-xs text-gray-500">
-              Es: "Salone Maria", "Beauty Center Milano", ecc.
+              Es: &quot;Salone Maria&quot;, &quot;Beauty Center Milano&quot;, ecc.
             </p>
           </div>
 

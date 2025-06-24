@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Service } from '@/types'
-import { Edit, Trash2, MoreVertical, Eye, Clock, Euro, ToggleLeft } from 'lucide-react'
+import { Edit, Trash2, Eye, Clock, Euro, ToggleLeft } from 'lucide-react'
 import DeleteConfirmationModal from '@/components/ui/delete-confirmation-modal'
 
 // Estendi il tipo Service per includere deleted_at
@@ -23,25 +23,9 @@ interface ServicesTableProps {
 export default function ServicesTable({ services, currentPage, totalPages, totalCount }: ServicesTableProps) {
   const router = useRouter()
   const supabase = createClient()
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [serviceToDelete, setServiceToDelete] = useState<ExtendedService | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setOpenDropdownId(null)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [])
 
   const handleToggleActive = async (service: ExtendedService) => {
     const { error } = await supabase
@@ -60,7 +44,6 @@ export default function ServicesTable({ services, currentPage, totalPages, total
   const handleDeleteClick = (service: ExtendedService) => {
     setServiceToDelete(service)
     setDeleteModalOpen(true)
-    setOpenDropdownId(null)
   }
 
   const handleDeleteConfirm = async () => {

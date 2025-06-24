@@ -2,7 +2,7 @@ import { requireAdminAuth } from '@/lib/supabase/requireAuth'
 import RateLimitClient from './RateLimitClient'
 
 export default async function RateLimitPage() {
-  const { userData, supabase } = await requireAdminAuth()
+  const { supabase } = await requireAdminAuth()
 
   // Fetch rate limit statistics server-side
   const { data: stats, error } = await supabase

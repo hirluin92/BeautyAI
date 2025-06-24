@@ -1,7 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { z } from 'zod'
+import type { NextRequest } from 'next/server'
+import { rateLimitManager, rateLimitResponse } from '@/lib/rate-limit'
 import { requireAuth } from '@/lib/supabase/requireAuth'
+import { z } from 'zod'
 
 // Staff creation schema
 const createStaffSchema = z.object({
@@ -25,89 +26,116 @@ const updateStaffSchema = z.object({
   is_active: z.boolean().optional(),
 })
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const { userData, supabase } = await requireAuth()
+    // Rate limiting
+    const result = await rateLimitManager.checkRateLimit(
+      request,
+      'dashboard',
+      '/api/staff'
+    )
     
-    console.log('👨‍💼 Getting staff for organization:', userData.organization.name)
+    if (!result.success) {
+      return rateLimitResponse(result.retryAfter)
+    }
 
-    // Get query parameters
+    const { userData, supabase } = await requireAuth()
+
     const { searchParams } = new URL(request.url)
-    const isActive = searchParams.get('is_active')
     const search = searchParams.get('search')
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '10')
+    const offset = (page - 1) * limit
 
-    // Build query
     let query = supabase
       .from('staff')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('organization_id', userData.organization.id)
-      .order('full_name')
-
-    // Apply filters
-    if (isActive !== null) {
-      query = query.eq('is_active', isActive === 'true')
-    }
 
     if (search) {
       query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`)
     }
 
-    const { data: staff, error } = await query
+    const { data: staff, error, count } = await query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1)
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      console.error('Error fetching staff:', error)
+      return NextResponse.json(
+        { error: 'Errore nel recupero dello staff' },
+        { status: 500 }
+      )
     }
 
-    return NextResponse.json(staff)
+    return NextResponse.json({
+      staff,
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
+      }
+    })
   } catch (error) {
-    console.error('Error fetching staff:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error in staff GET:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { userData, supabase } = await requireAuth()
+    // Rate limiting
+    const result = await rateLimitManager.checkRateLimit(
+      request,
+      'dashboard',
+      '/api/staff'
+    )
     
-    console.log('👨‍💼 Creating staff for organization:', userData.organization.name)
-
-    // Parse and validate request body
-    const body = await request.json()
-    const validationResult = createStaffSchema.safeParse(body)
-
-    if (!validationResult.success) {
-      return NextResponse.json({ 
-        error: 'Invalid data', 
-        details: validationResult.error.flatten() 
-      }, { status: 400 })
+    if (!result.success) {
+      return rateLimitResponse(result.retryAfter)
     }
 
-    const staffData = validationResult.data
+    const { userData, supabase } = await requireAuth()
 
-    // Create staff member
-    const { data: newStaff, error } = await supabase
+    const body = await request.json()
+    
+    // Validazione base
+    if (!body.full_name || !body.email) {
+      return NextResponse.json(
+        { error: 'Nome e email sono obbligatori' },
+        { status: 400 }
+      )
+    }
+
+    // Crea il membro dello staff
+    const { data, error } = await supabase
       .from('staff')
-      .insert([{
-        organization_id: userData.organization.id,
-        full_name: staffData.full_name,
-        email: staffData.email,
-        phone: staffData.phone,
-        role: staffData.role || 'staff',
-        specializations: staffData.specializations,
-        notes: staffData.notes,
-        is_active: staffData.is_active ?? true
-      }])
-      .select()
+      .insert({
+        ...body,
+        organization_id: userData.organization.id
+      })
+      .select('*')
       .single()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      console.error('Error creating staff member:', error)
+      return NextResponse.json(
+        { error: 'Errore nella creazione del membro dello staff' },
+        { status: 500 }
+      )
     }
 
-    return NextResponse.json(newStaff, { status: 201 })
+    return NextResponse.json({ success: true, staff: data })
   } catch (error) {
-    console.error('Error creating staff:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error in staff POST:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }
 

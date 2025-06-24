@@ -1,9 +1,10 @@
 // app/(dashboard)/services/page.tsx - VERSIONE SEMPLIFICATA
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Package, Clock, Euro } from 'lucide-react'
 import { requireAuth } from '@/lib/supabase/requireAuth'
+import { Database } from '@/types/database'
+
+type Service = Database['public']['Tables']['services']['Row']
 
 export default async function ServicesPage() {
   const { userData, supabase } = await requireAuth()
@@ -15,8 +16,8 @@ export default async function ServicesPage() {
     .eq('organization_id', userData.organization_id)
     .order('category, name')
 
-  const activeServices = services?.filter((s: any) => s.is_active) || []
-  const categories = [...new Set(services?.map((s: any) => s.category))]
+  const activeServices = services?.filter((s: Service) => s.is_active) || []
+  const categories = [...new Set(services?.map((s: Service) => s.category))]
 
   return (
     <div className="space-y-6">
@@ -66,7 +67,7 @@ export default async function ServicesPage() {
               <p className="text-sm font-medium text-gray-600">Durata Media</p>
               <p className="text-2xl font-bold text-gray-900">
                 {activeServices.length > 0 
-                  ? Math.round(activeServices.reduce((sum: number, s: any) => sum + s.duration_minutes, 0) / activeServices.length)
+                  ? Math.round(activeServices.reduce((sum: number, s: Service) => sum + s.duration_minutes, 0) / activeServices.length)
                   : 0
                 }min
               </p>
@@ -81,7 +82,7 @@ export default async function ServicesPage() {
               <p className="text-sm font-medium text-gray-600">Prezzo Medio</p>
               <p className="text-2xl font-bold text-gray-900">
                 €{activeServices.length > 0 
-                  ? (activeServices.reduce((sum: number, s: any) => sum + s.price, 0) / activeServices.length).toFixed(0)
+                  ? (activeServices.reduce((sum: number, s: Service) => sum + s.price, 0) / activeServices.length).toFixed(0)
                   : 0
                 }
               </p>
@@ -94,7 +95,7 @@ export default async function ServicesPage() {
       {categories.length > 0 ? (
         <div className="space-y-6">
           {categories.map(category => {
-            const categoryServices = services?.filter((s: any) => s.category === category) || []
+            const categoryServices = services?.filter((s: Service) => s.category === category) || []
             
             return (
               <div key={category as string} className="bg-white shadow rounded-lg">
@@ -103,7 +104,7 @@ export default async function ServicesPage() {
                 </div>
                 
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 p-6">
-                  {categoryServices.map((service: any) => (
+                  {categoryServices.map((service: Service) => (
                     <div key={service.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="font-semibold text-gray-900">{service.name}</h3>

@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { rateLimitManager, rateLimitResponse } from '@/lib/rate-limit'
@@ -91,7 +90,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Parametri mancanti' }, { status: 400 })
     }
 
-    console.log('�� Organization ID:', userData.organization.id)
+    console.log('🏢 Organization ID:', userData.organization.id)
     console.log('📝 Aggiornando booking:', { id, start_at, end_at })
 
     // Aggiorna il booking
@@ -209,7 +208,7 @@ export async function POST(request: NextRequest) {
 
     if (!data) {
       console.log('❌ Booking non creato')
-      return NextResponse.json({ error: 'Booking non creato' }, { status: 500 })
+      return NextResponse.json({ error: 'Errore nella creazione del booking' }, { status: 500 })
     }
 
     console.log('✅ Booking creato con successo:', data)

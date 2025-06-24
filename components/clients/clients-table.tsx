@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Phone, Mail, Calendar, Euro, MoreHorizontal, Edit, Trash2, MessageSquare } from 'lucide-react'
 import { Client } from '@/types'
 import DeleteConfirmationModal from '@/components/ui/delete-confirmation-modal'
-import ReactDOM from 'react-dom'
 
 interface ClientsTableProps {
   clients: Client[]
@@ -15,22 +14,10 @@ interface ClientsTableProps {
   totalCount: number
 }
 
-function DropdownMenu({ isOpen, anchorRef, children }: { isOpen: boolean, anchorRef: React.RefObject<HTMLButtonElement | null>, children: React.ReactNode }) {
-  if (!isOpen || !anchorRef.current) return null;
-  const rect = anchorRef.current.getBoundingClientRect();
-  const style: React.CSSProperties = {
-    position: 'fixed',
-    top: rect.bottom + 8,
-    left: rect.left,
-    zIndex: 9999,
-    minWidth: rect.width,
-  };
-  return ReactDOM.createPortal(
-    <div style={style} className="bg-white rounded-md shadow-lg z-50 border">
-      {children}
-    </div>,
-    document.body
-  );
+interface ClientWithStats extends Client {
+  visit_count?: number
+  total_spent?: number
+  last_visit_at?: string
 }
 
 export default function ClientsTable({ 
@@ -110,8 +97,9 @@ export default function ClientsTable({
       router.refresh()
       setDeleteModal({ isOpen: false, clientId: '', clientName: '' })
       
-    } catch (error: any) {
-      alert(`Errore: ${error.message}`)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto'
+      alert(`Errore: ${errorMessage}`)
     } finally {
       setIsDeleting(false)
     }
@@ -210,7 +198,7 @@ export default function ClientsTable({
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {clients.map((client) => {
-              const btnRef = useRef<HTMLButtonElement>(null);
+              const clientWithStats = client as ClientWithStats
               return (
                 <tr key={client.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
@@ -273,12 +261,12 @@ export default function ClientsTable({
                   <td className="px-6 py-4">
                     <div className="space-y-1">
                       <div className="flex items-center text-sm text-gray-900">
-                        <span className="font-medium">{(client as any).visit_count || 0}</span>
+                        <span className="font-medium">{clientWithStats.visit_count || 0}</span>
                         <span className="text-gray-500 ml-1">visite</span>
                       </div>
                       <div className="flex items-center text-sm text-gray-500">
                         <Euro className="w-3 h-3 mr-1" />
-                        {(client as any).total_spent ? `€${Number((client as any).total_spent).toFixed(2)}` : '€0.00'}
+                        {clientWithStats.total_spent ? `€${Number(clientWithStats.total_spent).toFixed(2)}` : '€0.00'}
                       </div>
                     </div>
                   </td>
@@ -304,8 +292,8 @@ export default function ClientsTable({
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
-                    {(client as any).last_visit_at 
-                      ? formatDate((client as any).last_visit_at)
+                    {clientWithStats.last_visit_at 
+                      ? formatDate(clientWithStats.last_visit_at)
                       : 'Mai'
                     }
                   </td>

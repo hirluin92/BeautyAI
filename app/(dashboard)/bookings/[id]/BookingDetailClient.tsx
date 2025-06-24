@@ -1,12 +1,18 @@
 'use client'
 import NotificationManager from '@/components/bookings/notification-manager'
+import { Database } from '@/types/database'
 
-interface BookingDetailClientProps {
-  booking: any
-  userData: any
+type BookingWithRelations = Database['public']['Tables']['bookings']['Row'] & {
+  client: Database['public']['Tables']['clients']['Row'] | null
+  service: Database['public']['Tables']['services']['Row'] | null
+  staff: Database['public']['Tables']['staff']['Row'] | null
 }
 
-export default function BookingDetailClient({ booking, userData }: BookingDetailClientProps) {
+interface BookingDetailClientProps {
+  booking: BookingWithRelations
+}
+
+export default function BookingDetailClient({ booking }: BookingDetailClientProps) {
   if (!booking) return <div>Prenotazione non trovata</div>
   
   const formatDate = (dateString: string) => {
@@ -36,13 +42,12 @@ export default function BookingDetailClient({ booking, userData }: BookingDetail
       <NotificationManager 
         bookingId={booking.id}
         clientName={booking.client?.full_name || ''}
-        clientEmail={booking.client?.email}
-        clientPhone={booking.client?.phone}
+        clientEmail={booking.client?.email || undefined}
+        clientPhone={booking.client?.phone || undefined}
         serviceName={booking.service?.name || ''}
         appointmentDate={formatDate(booking.start_at)}
         appointmentTime={formatTime(booking.start_at)}
         status={booking.status || 'pending'}
-        notificationPreferences={booking.client?.notification_preferences}
       />
     </div>
   )

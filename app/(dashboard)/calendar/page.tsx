@@ -49,8 +49,15 @@ export default async function CalendarPage() {
         staff: staff || [],
         currentUser: {
           id: userData.id,
+          email: userData.email,
           full_name: userData.full_name,
-          organization_id: userData.organization_id
+          organization_id: userData.organization_id,
+          role: userData.role,
+          is_active: userData.is_active,
+          created_at: (userData as { created_at?: string }).created_at || '',
+          updated_at: (userData as { updated_at?: string }).updated_at || '',
+          avatar_url: (userData as { avatar_url?: string | null }).avatar_url || null,
+          phone: (userData as { phone?: string | null }).phone || null
         },
         organizationId: userData.organization_id
       }}

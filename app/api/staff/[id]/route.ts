@@ -16,17 +16,19 @@ const updateStaffSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userData, supabase } = await requireAuth()
+    
+    const { id } = await params
     
     console.log('👨‍💼 Getting staff member for organization:', userData.organization.name)
 
     const { data: staff, error } = await supabase
       .from('staff')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('organization_id', userData.organization.id)
       .single()
 
@@ -46,10 +48,12 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userData, supabase } = await requireAuth()
+    
+    const { id } = await params
     
     console.log('👨‍💼 Updating staff member for organization:', userData.organization.name)
 
@@ -75,7 +79,7 @@ export async function PUT(
     const { data: updatedStaff, error } = await supabase
       .from('staff')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('organization_id', userData.organization.id)
       .select()
       .single()
@@ -99,10 +103,12 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userData, supabase } = await requireAuth()
+    
+    const { id } = await params
     
     console.log('👨‍💼 Deleting staff member for organization:', userData.organization.name)
 
@@ -110,7 +116,7 @@ export async function DELETE(
     const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
       .select('id')
-      .eq('staff_id', params.id)
+      .eq('staff_id', id)
       .eq('organization_id', userData.organization.id)
       .limit(1)
 
@@ -126,7 +132,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('staff')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('organization_id', userData.organization.id)
 
     if (error) {

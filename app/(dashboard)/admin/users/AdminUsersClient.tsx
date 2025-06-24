@@ -39,8 +39,9 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
       const { data, error } = await supabase.from('users').select('id, email, role, is_active, created_at')
       if (error) throw error
       setUsers(data || [])
-    } catch (err: any) {
-      setError(err.message || 'Errore nel caricamento utenti')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Errore nel caricamento utenti'
+      setError(errorMessage)
     }
   }
 
@@ -74,9 +75,10 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
       }
       setShowModal(false)
       loadUsers()
-    } catch (err: any) {
-      setError(err.message || 'Errore nel salvataggio')
-      toast.error(err.message || 'Errore nel salvataggio')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Errore nel salvataggio'
+      setError(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setSaving(false)
     }
@@ -92,9 +94,10 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
       if (error) throw error
       toast.success('Utente eliminato')
       loadUsers()
-    } catch (err: any) {
-      setError(err.message || 'Errore nell\'eliminazione')
-      toast.error(err.message || 'Errore nell\'eliminazione')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Errore nell\'eliminazione'
+      setError(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setSaving(false)
     }
@@ -109,9 +112,10 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
       if (error) throw error
       toast.success(user.is_active ? 'Utente bloccato' : 'Utente sbloccato')
       loadUsers()
-    } catch (err: any) {
-      setError(err.message || 'Errore nell\'aggiornamento')
-      toast.error(err.message || 'Errore nell\'aggiornamento')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Errore nell\'aggiornamento'
+      setError(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setSaving(false)
     }

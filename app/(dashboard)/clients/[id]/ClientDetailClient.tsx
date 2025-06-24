@@ -2,24 +2,41 @@
 
 import Link from 'next/link'
 import { ArrowLeft, Edit, Calendar, Phone, Mail, MessageSquare, Euro, Clock, Tag } from 'lucide-react'
-import { Client, UserWithOrganization, BookingWithRelations } from '@/types'
+import { Database } from '@/types/database'
 import ClientQuickActions from '@/components/clients/client-quick-actions'
 
-interface ClientDetailClientProps {
-  client: any
-  bookings: any[]
-  userData: any
+type Client = Database['public']['Tables']['clients']['Row']
+type BookingWithRelations = Database['public']['Tables']['bookings']['Row'] & {
+  client: Database['public']['Tables']['clients']['Row'] | null
+  service: Database['public']['Tables']['services']['Row'] | null
+  staff: Database['public']['Tables']['staff']['Row'] | null
 }
 
-export default function ClientDetailClient({ client, bookings, userData }: ClientDetailClientProps) {
+interface ClientDetailClientProps {
+  client: Client
+  bookings: BookingWithRelations[]
+}
+
+export default function ClientDetailClient({ client, bookings }: ClientDetailClientProps) {
   if (!client) {
     return <div>Cliente non trovato</div>
   }
 
-  // Calculate stats
-  const totalBookings = client.visit_count || 0
-  const totalSpent = Number(client.total_spent || 0)
+  // Calculate stats from bookings data
+  const totalBookings = bookings.length
+  const totalSpent = bookings.reduce((sum, booking) => {
+    return sum + (booking.service?.price || 0)
+  }, 0)
   const avgSpent = totalBookings > 0 ? totalSpent / totalBookings : 0
+  
+  // Get last visit date from bookings
+  const lastVisitAt = bookings.length > 0 
+    ? bookings.reduce((latest, booking) => {
+        const bookingDate = new Date(booking.start_at)
+        const latestDate = latest ? new Date(latest) : new Date(0)
+        return bookingDate > latestDate ? booking.start_at : latest
+      }, '')
+    : null
 
   const formatPhone = (phone: string) => {
     if (phone.startsWith('+39')) {
@@ -184,13 +201,13 @@ export default function ClientDetailClient({ client, bookings, userData }: Clien
                   </div>
                 )}
 
-                {client.last_visit_at && (
+                {lastVisitAt && (
                   <div className="flex items-center">
                     <Clock className="w-5 h-5 text-gray-400 mr-3" />
                     <div>
                       <p className="text-sm text-gray-600">Ultima visita</p>
                       <span className="text-gray-900">
-                        {formatDate(client.last_visit_at)}
+                        {formatDate(lastVisitAt)}
                       </span>
                     </div>
                   </div>
@@ -245,7 +262,7 @@ export default function ClientDetailClient({ client, bookings, userData }: Clien
             
             <div className="divide-y divide-gray-200">
               {bookings.length > 0 ? (
-                bookings.map((booking: any) => (
+                bookings.map((booking: BookingWithRelations) => (
                   <div key={booking.id} className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">

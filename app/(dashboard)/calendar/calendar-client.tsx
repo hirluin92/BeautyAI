@@ -1,23 +1,31 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import CalendarView from '@/components/calendar/calendar-view'
 import CalendarFilters from '@/components/calendar/calendar-filters'
 import { useCalendarFilters } from '@/hooks/useCalendarFilters'
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
+import { startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { Database } from '@/types/database'
+import { Booking } from '@/components/calendar/calendar-view'
+
+type BookingWithRelations = Database['public']['Tables']['bookings']['Row'] & {
+  client: Database['public']['Tables']['clients']['Row'] | null
+  service: Database['public']['Tables']['services']['Row'] | null
+  staff: Database['public']['Tables']['staff']['Row'] | null
+}
+
+type Service = Database['public']['Tables']['services']['Row']
+type Staff = Database['public']['Tables']['staff']['Row']
+type User = Database['public']['Tables']['users']['Row']
 
 interface CalendarClientProps {
   initialData: {
-    bookings: any[]
-    services: any[]
-    staff: any[]
-    currentUser: {
-      id: string
-      full_name: string
-      organization_id: string
-    }
+    bookings: BookingWithRelations[]
+    services: Service[]
+    staff: Staff[]
+    currentUser: User
     organizationId: string
   }
 }
@@ -25,15 +33,38 @@ interface CalendarClientProps {
 export default function CalendarClient({ initialData }: CalendarClientProps) {
   const supabase = createClient()
   
-  const [bookings, setBookings] = useState<any[]>(initialData.bookings)
-  const [services, setServices] = useState<any[]>(initialData.services)
-  const [staff, setStaff] = useState<any[]>(initialData.staff)
+  const [bookings, setBookings] = useState<BookingWithRelations[]>(initialData.bookings)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [currentUser] = useState<any>(initialData.currentUser)
+  const [currentUser] = useState<User>(initialData.currentUser)
   
   const [currentDate, setCurrentDate] = useState(new Date())
   const [viewType, setViewType] = useState<'week' | 'month' | 'day'>('week')
+
+  // Convert bookings to the expected format and filter out incomplete ones
+  const validBookings: Booking[] = bookings
+    .filter(booking => booking.client && booking.service)
+    .map(booking => ({
+      id: booking.id,
+      start_at: booking.start_at,
+      end_at: booking.end_at,
+      status: booking.status,
+      client: {
+        id: booking.client!.id,
+        full_name: booking.client!.full_name,
+        phone: booking.client!.phone
+      },
+      service: {
+        id: booking.service!.id,
+        name: booking.service!.name,
+        duration_minutes: booking.service!.duration_minutes,
+        price: booking.service!.price
+      },
+      staff: booking.staff ? {
+        id: booking.staff.id,
+        full_name: booking.staff.full_name
+      } : undefined
+    }))
 
   // Use calendar filters hook
   const {
@@ -43,11 +74,11 @@ export default function CalendarClient({ initialData }: CalendarClientProps) {
     resetFilters,
     getActiveFiltersCount
   } = useCalendarFilters({
-    bookings,
+    bookings: validBookings,
     currentUserId: currentUser?.id
   })
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       
@@ -90,11 +121,11 @@ export default function CalendarClient({ initialData }: CalendarClientProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [currentDate, viewType, supabase, initialData.organizationId])
 
   useEffect(() => {
     loadData()
-  }, [currentDate, viewType])
+  }, [loadData])
 
   const handleNavigate = (direction: 'prev' | 'next') => {
     const newDate = new Date(currentDate)
@@ -131,8 +162,8 @@ export default function CalendarClient({ initialData }: CalendarClientProps) {
     setCurrentDate(new Date(currentDate))
   }
 
-  const handleFilterChange = (key: string, value: any) => {
-    updateFilter(key as any, value)
+  const handleFilterChange = (key: string, value: unknown) => {
+    updateFilter(key as keyof typeof filters, value as string | { start: Date | null; end: Date | null })
   }
 
   if (loading) {
@@ -167,8 +198,8 @@ export default function CalendarClient({ initialData }: CalendarClientProps) {
       {/* Advanced Filters */}
       <div className="container mx-auto px-4 py-6">
         <CalendarFilters
-          services={services}
-          staff={staff}
+          services={initialData.services}
+          staff={initialData.staff}
           filters={filters}
           onFilterChange={handleFilterChange}
           onResetFilters={resetFilters}
@@ -180,8 +211,8 @@ export default function CalendarClient({ initialData }: CalendarClientProps) {
       {/* Calendar View */}
       <CalendarView
         bookings={filteredBookings}
-        services={services}
-        staff={staff}
+        services={initialData.services}
+        staff={initialData.staff}
         viewType={viewType}
         currentDate={currentDate}
         onNavigate={handleNavigate}

@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { rateLimitManager, rateLimitResponse } from '@/lib/rate-limit'
@@ -19,28 +18,43 @@ export async function GET(request: NextRequest) {
     }
 
     const { userData, supabase } = await requireAuth()
-    
-    console.log('🛠️ Getting services for organization:', userData.organization.name)
 
-    // Get services - only active ones
-    const { data: services, error } = await supabase
+    const { searchParams } = new URL(request.url)
+    const search = searchParams.get('search')
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '10')
+    const offset = (page - 1) * limit
+
+    let query = supabase
       .from('services')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('organization_id', userData.organization.id)
-      .is('deleted_at', null)
-      .order('category', { ascending: true })
-      .order('name', { ascending: true })
+
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`)
+    }
+
+    const { data: services, error, count } = await query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1)
 
     if (error) {
       console.error('Error fetching services:', error)
       return NextResponse.json(
-        { error: 'Failed to fetch services' },
+        { error: 'Errore nel recupero dei servizi' },
         { status: 500 }
       )
     }
 
-    return NextResponse.json({ services })
-
+    return NextResponse.json({
+      services,
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
+      }
+    })
   } catch (error) {
     console.error('Error in services GET:', error)
     return NextResponse.json(
@@ -64,10 +78,9 @@ export async function POST(request: NextRequest) {
     }
 
     const { userData, supabase } = await requireAuth()
-    
-    console.log('🛠️ Creating service for organization:', userData.organization.name)
-    const body = await request.json()
 
+    const body = await request.json()
+    
     // Validazione Zod
     const parseResult = serviceSchema.safeParse(body)
     if (!parseResult.success) {
@@ -78,31 +91,25 @@ export async function POST(request: NextRequest) {
     }
     const validData = parseResult.data
 
-    // Create service
-    const { data: service, error } = await supabase
+    // Crea il servizio
+    const { data, error } = await supabase
       .from('services')
       .insert({
-        organization_id: userData.organization.id,
-        name: validData.name,
-        description: validData.description || null,
-        price: validData.price,
-        duration_minutes: validData.duration_minutes,
-        category: validData.category || null,
-        is_active: validData.is_active ?? true
+        ...validData,
+        organization_id: userData.organization.id
       })
-      .select()
+      .select('*')
       .single()
 
     if (error) {
       console.error('Error creating service:', error)
       return NextResponse.json(
-        { error: 'Failed to create service' },
+        { error: 'Errore nella creazione del servizio' },
         { status: 500 }
       )
     }
 
-    return NextResponse.json(service, { status: 201 })
-
+    return NextResponse.json({ success: true, service: data })
   } catch (error) {
     console.error('Error in services POST:', error)
     return NextResponse.json(

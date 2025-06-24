@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { requireAdminAuth } from '@/lib/supabase/requireAuth'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,15 +9,13 @@ import {
   Settings, 
   Database, 
   BarChart3,
-  AlertTriangle,
   CheckCircle,
-  Clock,
-  TrendingUp,
-  Server,
   Key,
-  Eye,
-  Lock
+  Eye
 } from 'lucide-react'
+import { Database as DatabaseType } from '@/types/database'
+
+type User = DatabaseType['public']['Tables']['users']['Row']
 
 interface AdminStats {
   totalUsers: number
@@ -29,14 +26,6 @@ interface AdminStats {
   uptime: string
   apiRequests: number
   errorRate: number
-}
-
-interface SecurityStatus {
-  rateLimiting: boolean
-  authentication: boolean
-  dataEncryption: boolean
-  backups: boolean
-  monitoring: boolean
 }
 
 export default async function AdminPanelPage() {
@@ -61,16 +50,8 @@ export default async function AdminPanelPage() {
 
   if (usersResponse.data && orgsResponse.data) {
     stats.totalUsers = usersResponse.data.length
-    stats.activeUsers = usersResponse.data.filter((user: any) => user.is_active).length
+    stats.activeUsers = usersResponse.data.filter((user: User) => user.is_active).length
     stats.totalOrganizations = orgsResponse.data.length
-  }
-
-  const securityStatus: SecurityStatus = {
-    rateLimiting: true,
-    authentication: true,
-    dataEncryption: true,
-    backups: true,
-    monitoring: true
   }
 
   const adminModules = [
@@ -130,15 +111,6 @@ export default async function AdminPanelPage() {
       case 'coming-soon': return 'bg-yellow-100 text-yellow-800'
       case 'maintenance': return 'bg-red-100 text-red-800'
       default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getHealthIcon = (health: string) => {
-    switch (health) {
-      case 'healthy': return <CheckCircle className="h-5 w-5 text-green-600" />
-      case 'warning': return <AlertTriangle className="h-5 w-5 text-yellow-600" />
-      case 'critical': return <AlertTriangle className="h-5 w-5 text-red-600" />
-      default: return <Clock className="h-5 w-5 text-gray-600" />
     }
   }
 
@@ -214,67 +186,6 @@ export default async function AdminPanelPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Security Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Stato Sicurezza
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="font-medium">Rate Limiting</p>
-                <p className="text-sm text-muted-foreground">Attivo</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="font-medium">Autenticazione</p>
-                <p className="text-sm text-muted-foreground">JWT + RLS</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="font-medium">Crittografia</p>
-                <p className="text-sm text-muted-foreground">HTTPS + TLS</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="font-medium">Backup</p>
-                <p className="text-sm text-muted-foreground">Automatico</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="font-medium">Monitoraggio</p>
-                <p className="text-sm text-muted-foreground">24/7</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="font-medium">Validazione</p>
-                <p className="text-sm text-muted-foreground">Zod + TypeScript</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

@@ -10,13 +10,15 @@ const bookingIdSchema = z.object({
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
     
+    const { id } = await params
+    
     // Validate booking ID
-    const validatedParams = bookingIdSchema.parse({ id: params.id });
+    const validatedParams = bookingIdSchema.parse({ id });
     
     // Check if booking exists
     const { data: existingBooking, error: fetchError } = await supabase

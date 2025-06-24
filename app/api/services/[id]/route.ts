@@ -19,10 +19,13 @@ const serviceIdSchema = z.object({
 // GET /api/services/[id]
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient()
+    
+    const { id } = await params
+    
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -38,7 +41,7 @@ export async function GET(
     const { data, error } = await supabase
       .from('services')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('organization_id', userData.organization_id!)
       .single()
     if (error) {
@@ -56,13 +59,15 @@ export async function GET(
 // PATCH /api/services/[id]
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
     
+    const { id } = await params
+    
     // Validate service ID
-    const validatedParams = serviceIdSchema.parse({ id: params.id });
+    const validatedParams = serviceIdSchema.parse({ id });
     
     // Get request body
     const body = await request.json();
@@ -120,13 +125,15 @@ export async function PATCH(
 // DELETE /api/services/[id]
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient();
     
+    const { id } = await params
+    
     // Validate service ID
-    const validatedParams = serviceIdSchema.parse({ id: params.id });
+    const validatedParams = serviceIdSchema.parse({ id });
     
     // Check if service exists
     const { data: existingService, error: fetchError } = await supabase

@@ -7,10 +7,12 @@ import { requireAuth } from '@/lib/supabase/requireAuth'
 // GET /api/clients/[id]
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userData, supabase } = await requireAuth()
+    
+    const { id } = await params
     
     console.log('👥 Getting client for organization:', userData.organization.name)
     
@@ -18,7 +20,7 @@ export async function GET(
     const { data: client, error: clientError } = await supabase
       .from('clients')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('organization_id', userData.organization.id)
       .single()
     
@@ -34,7 +36,7 @@ export async function GET(
         service:services(id, name, price, duration_minutes, category),
         staff:staff(id, full_name, role)
       `)
-      .eq('client_id', params.id)
+      .eq('client_id', id)
       .eq('organization_id', userData.organization.id)
       .order('start_at', { ascending: false })
       .limit(10) // Get only recent bookings
@@ -55,10 +57,12 @@ export async function GET(
 // PUT /api/clients/[id]
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userData, supabase } = await requireAuth()
+    
+    const { id } = await params
     
     console.log('👥 Updating client for organization:', userData.organization.name)
     
@@ -81,7 +85,7 @@ export async function PUT(
         .select('id')
         .eq('organization_id', userData.organization.id)
         .eq('phone', validData.phone)
-        .neq('id', params.id)
+        .neq('id', id)
         .single()
 
       if (existingClient) {
@@ -104,7 +108,7 @@ export async function PUT(
         notes: validData.notes || null,
         tags: validData.tags || []
       })
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('organization_id', userData.organization.id)
       .select()
       .single()
@@ -138,10 +142,12 @@ export async function PUT(
 // DELETE /api/clients/[id]
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userData, supabase } = await requireAuth()
+    
+    const { id } = await params
     
     console.log('👥 Deleting client for organization:', userData.organization.name)
     
@@ -149,7 +155,7 @@ export async function DELETE(
     const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
       .select('id')
-      .eq('client_id', params.id)
+      .eq('client_id', id)
       .eq('organization_id', userData.organization.id)
       .limit(1)
 
@@ -165,7 +171,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('clients')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('organization_id', userData.organization.id)
 
     if (error) {

@@ -72,7 +72,7 @@ export default function ChatTest({ organizationId }: ChatTestProps) {
         }
         setMessages(prev => [...prev, errorMessage])
       }
-    } catch (error) {
+    } catch {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: 'Errore di connessione',
@@ -116,8 +116,8 @@ export default function ChatTest({ organizationId }: ChatTestProps) {
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               <Bot className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>Inizia una conversazione con l'AI</p>
-              <p className="text-sm">Prova a chiedere: "Ciao", "Prenota un appuntamento", "Quali servizi offrite?"</p>
+              <p>Inizia una conversazione con l&apos;AI</p>
+              <p className="text-sm">Prova a chiedere: &quot;Ciao&quot;, &quot;Prenota un appuntamento&quot;, &quot;Quali servizi offrite?&quot;</p>
             </div>
           ) : (
             <div className="space-y-4">

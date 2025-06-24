@@ -1,10 +1,13 @@
 import { notFound } from 'next/navigation'
 import { requireAuth } from '@/lib/supabase/requireAuth'
 import ServiceDetailClient from './ServiceDetailClient'
+import { DynamicPageProps } from '@/lib/utils'
 
-export default async function ServiceDetailPage({ params }: { params: { id: string } }) {
+export default async function ServiceDetailPage({ params }: DynamicPageProps<{ id: string }>) {
   const { userData, supabase } = await requireAuth()
-  const { id } = params
+  
+  // ✅ FIXED: await params per Next.js 15
+  const { id } = await params
 
   // Fetch service data
   const { data: service, error: serviceError } = await supabase

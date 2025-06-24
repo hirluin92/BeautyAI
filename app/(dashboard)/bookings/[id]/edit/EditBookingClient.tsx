@@ -1,11 +1,35 @@
 'use client'
 import BookingForm from '@/components/bookings/booking-form'
+import { Database } from '@/types/database'
+
+type BookingWithRelations = Database['public']['Tables']['bookings']['Row'] & {
+  client: Database['public']['Tables']['clients']['Row'] | null
+  service: Database['public']['Tables']['services']['Row'] | null
+  staff: Database['public']['Tables']['staff']['Row'] | null
+}
+
+type Service = Database['public']['Tables']['services']['Row']
+type Staff = Database['public']['Tables']['staff']['Row']
+type UserWithOrganization = {
+  id: string
+  email: string
+  full_name: string
+  organization_id: string
+  role: 'owner' | 'staff' | 'admin'
+  is_active: boolean
+  organization: {
+    id: string
+    name: string
+    slug: string
+    plan_type: string
+  }
+}
 
 interface EditBookingClientProps {
-  booking: any
-  services: any[]
-  staff: any[]
-  userData: any
+  booking: BookingWithRelations
+  services: Service[]
+  staff: Staff[]
+  userData: UserWithOrganization
 }
 
 export default function EditBookingClient({ booking, services, staff, userData }: EditBookingClientProps) {
@@ -15,7 +39,7 @@ export default function EditBookingClient({ booking, services, staff, userData }
       <h1 className="text-3xl font-bold mb-4">Modifica Prenotazione</h1>
       <BookingForm
         organizationId={userData.organization_id}
-        clients={[booking.client]}
+        clients={booking.client ? [booking.client] : []}
         services={services}
         staff={staff}
         booking={booking}

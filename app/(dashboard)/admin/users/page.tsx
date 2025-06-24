@@ -2,7 +2,7 @@ import { requireAdminAuth } from '@/lib/supabase/requireAuth'
 import AdminUsersClient from './AdminUsersClient'
 
 export default async function AdminUsersPage() {
-  const { userData, supabase } = await requireAdminAuth()
+  const { supabase } = await requireAdminAuth()
 
   // Fetch users data server-side
   const { data: users, error } = await supabase

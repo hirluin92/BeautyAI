@@ -133,15 +133,16 @@ export async function POST(request: Request) {
         }
       })
 
-    } catch (transactionError: any) {
+    } catch (transactionError: unknown) {
+      const errorMessage = transactionError instanceof Error ? transactionError.message : 'Errore durante il setup'
       console.error('❌ Transaction error:', transactionError)
       return NextResponse.json(
-        { error: transactionError.message || 'Errore durante il setup' },
+        { error: errorMessage },
         { status: 400 }
       )
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Complete setup error:', error)
     return NextResponse.json(
       { error: 'Errore interno del server' },

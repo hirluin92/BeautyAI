@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAuth } from '@/lib/supabase/requireAuth'
@@ -47,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Add message to conversation
-    const { data: message, error: messageError } = await supabase
+    const { error: messageError } = await supabase
       .from('ai_messages')
       .insert({
         conversation_id: conversationId,
@@ -67,7 +66,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Simulate AI response (in a real implementation, this would call an AI service)
-    const aiResponse = `Risposta AI al messaggio: "${validatedData.message}"`;
+    const aiResponse = `Risposta AI al messaggio: &quot;${validatedData.message}&quot;`;
     
     const { data: aiMessage, error: aiMessageError } = await supabase
       .from('ai_messages')
@@ -97,7 +96,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       conversation_id: conversationId,
-      user_message: message,
       ai_response: aiMessage,
     });
 

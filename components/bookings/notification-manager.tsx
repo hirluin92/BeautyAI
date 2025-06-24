@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { 
   Bell, Mail, MessageSquare, Phone, Send, 
   CheckCircle2, XCircle, AlertCircle, Loader2,
   Clock, ChevronRight
 } from 'lucide-react'
-import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -57,11 +56,7 @@ export default function NotificationManagerRedesigned({
   const [notifications, setNotifications] = useState<NotificationLog[]>([])
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  useEffect(() => {
-    fetchNotifications()
-  }, [bookingId])
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const response = await fetch(`/api/notifications/send?bookingId=${bookingId}`)
       if (response.ok) {
@@ -71,7 +66,11 @@ export default function NotificationManagerRedesigned({
     } catch (error) {
       console.error('Error fetching notifications:', error)
     }
-  }
+  }, [bookingId])
+
+  useEffect(() => {
+    fetchNotifications()
+  }, [fetchNotifications])
 
   const sendNotification = async (type: 'confirmation' | 'reminder_24h' | 'reminder_1h' | 'cancellation') => {
     setSending(type)
@@ -198,182 +197,183 @@ export default function NotificationManagerRedesigned({
       {/* Message Alert */}
       {message && (
         <Alert variant={message.type === 'error' ? 'destructive' : 'default'}>
-          {message.type === 'success' ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : (
+          {message.type === 'error' ? (
             <XCircle className="h-4 w-4" />
+          ) : (
+            <CheckCircle2 className="h-4 w-4" />
           )}
           <AlertDescription>{message.text}</AlertDescription>
         </Alert>
       )}
 
-      <Tabs defaultValue="actions" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="actions">Azioni Rapide</TabsTrigger>
-          <TabsTrigger value="history">Storico</TabsTrigger>
-        </TabsList>
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Bell className="h-5 w-5" />
+            <span>Azioni Rapide</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <Button
+              onClick={() => sendNotification('confirmation')}
+              disabled={sending === 'confirmation'}
+              className="flex items-center space-x-2"
+              variant="outline"
+            >
+              {sending === 'confirmation' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4" />
+              )}
+              <span>Conferma</span>
+            </Button>
 
-        <TabsContent value="actions" className="space-y-4">
-          {/* Quick Actions */}
-          <div className="grid gap-3">
-            {status === 'confirmed' && (
-              <>
-                <Button
-                  onClick={() => sendNotification('confirmation')}
-                  disabled={sending !== null}
-                  variant="outline"
-                  className="justify-start"
-                >
-                  {sending === 'confirmation' ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="mr-2 h-4 w-4" />
-                  )}
-                  Invia Conferma
-                </Button>
-                <Button
-                  onClick={() => sendNotification('reminder_24h')}
-                  disabled={sending !== null}
-                  variant="outline"
-                  className="justify-start"
-                >
-                  {sending === 'reminder_24h' ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Clock className="mr-2 h-4 w-4" />
-                  )}
-                  Invia Promemoria 24h
-                </Button>
-              </>
-            )}
-            
-            {status === 'cancelled' && (
-              <Button
-                onClick={() => sendNotification('cancellation')}
-                disabled={sending !== null}
-                variant="outline"
-                className="justify-start text-red-600 hover:text-red-700"
-              >
-                {sending === 'cancellation' ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <XCircle className="mr-2 h-4 w-4" />
-                )}
-                Notifica Cancellazione
-              </Button>
-            )}
+            <Button
+              onClick={() => sendNotification('reminder_24h')}
+              disabled={sending === 'reminder_24h'}
+              className="flex items-center space-x-2"
+              variant="outline"
+            >
+              {sending === 'reminder_24h' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Clock className="h-4 w-4" />
+              )}
+              <span>Promemoria 24h</span>
+            </Button>
+
+            <Button
+              onClick={() => sendNotification('reminder_1h')}
+              disabled={sending === 'reminder_1h'}
+              className="flex items-center space-x-2"
+              variant="outline"
+            >
+              {sending === 'reminder_1h' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Clock className="h-4 w-4" />
+              )}
+              <span>Promemoria 1h</span>
+            </Button>
+
+            <Button
+              onClick={() => sendNotification('cancellation')}
+              disabled={sending === 'cancellation'}
+              className="flex items-center space-x-2"
+              variant="outline"
+            >
+              {sending === 'cancellation' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <XCircle className="h-4 w-4" />
+              )}
+              <span>Cancellazione</span>
+            </Button>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* WhatsApp Quick Links */}
-          {clientPhone && notificationPreferences.whatsapp && (
-            <>
-              <Separator />
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Invio Manuale WhatsApp</p>
-                <div className="grid gap-2">
-                  {status === 'confirmed' && (
-                    <>
-                      <Button
-                        asChild
-                        variant="outline"
-                        className="justify-between text-green-600 hover:text-green-700"
-                      >
-                        <a
-                          href={createWhatsAppLink('confirmation')}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <span className="flex items-center">
-                            <MessageSquare className="mr-2 h-4 w-4" />
-                            WhatsApp Conferma
-                          </span>
-                          <ChevronRight className="h-4 w-4" />
-                        </a>
-                      </Button>
-                      <Button
-                        asChild
-                        variant="outline"
-                        className="justify-between text-blue-600 hover:text-blue-700"
-                      >
-                        <a
-                          href={createWhatsAppLink('reminder')}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <span className="flex items-center">
-                            <MessageSquare className="mr-2 h-4 w-4" />
-                            WhatsApp Promemoria
-                          </span>
-                          <ChevronRight className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    </>
-                  )}
-                  {status === 'cancelled' && (
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="justify-between text-red-600 hover:text-red-700"
-                    >
-                      <a
-                        href={createWhatsAppLink('cancellation')}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <span className="flex items-center">
-                          <MessageSquare className="mr-2 h-4 w-4" />
-                          WhatsApp Cancellazione
-                        </span>
-                        <ChevronRight className="h-4 w-4" />
-                      </a>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </TabsContent>
-
-        <TabsContent value="history" className="space-y-3">
-          {notifications.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Bell className="h-12 w-12 mx-auto mb-3 opacity-20" />
-              <p className="text-sm">Nessuna notifica inviata</p>
-            </div>
-          ) : (
-            notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className="flex items-center justify-between p-4 rounded-lg border"
+      {/* WhatsApp Quick Links */}
+      {clientPhone && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <MessageSquare className="h-5 w-5" />
+              <span>WhatsApp Rapido</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Button
+                onClick={() => window.open(createWhatsAppLink('confirmation'), '_blank')}
+                className="flex items-center space-x-2"
+                variant="outline"
               >
-                <div className="flex items-center space-x-3">
-                  {notification.type === 'email' && <Mail className="h-4 w-4 text-muted-foreground" />}
-                  {notification.type === 'sms' && <Phone className="h-4 w-4 text-muted-foreground" />}
-                  {notification.type === 'whatsapp' && <MessageSquare className="h-4 w-4 text-muted-foreground" />}
-                  <div>
-                    <p className="text-sm font-medium capitalize">{notification.type}</p>
-                    {notification.sent_at && (
+                <MessageSquare className="h-4 w-4" />
+                <span>Conferma</span>
+              </Button>
+
+              <Button
+                onClick={() => window.open(createWhatsAppLink('reminder'), '_blank')}
+                className="flex items-center space-x-2"
+                variant="outline"
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span>Promemoria</span>
+              </Button>
+
+              <Button
+                onClick={() => window.open(createWhatsAppLink('cancellation'), '_blank')}
+                className="flex items-center space-x-2"
+                variant="outline"
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span>Cancellazione</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Notification History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Clock className="h-5 w-5" />
+            <span>Cronologia Notifiche</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {notifications.length > 0 ? (
+            <div className="space-y-3">
+              {notifications.map((notification) => (
+                <div key={notification.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    {notification.type === 'email' && <Mail className="h-4 w-4 text-blue-500" />}
+                    {notification.type === 'sms' && <Phone className="h-4 w-4 text-green-500" />}
+                    {notification.type === 'whatsapp' && <MessageSquare className="h-4 w-4 text-green-600" />}
+                    
+                    <div>
+                      <p className="font-medium text-sm capitalize">{notification.type}</p>
                       <p className="text-xs text-muted-foreground">
-                        {format(new Date(notification.sent_at), 'dd/MM/yyyy HH:mm', { locale: it })}
+                        {new Date(notification.created_at).toLocaleString('it-IT')}
                       </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    {notification.status === 'sent' && (
+                      <Badge variant="default" className="bg-green-100 text-green-800">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Inviato
+                      </Badge>
+                    )}
+                    {notification.status === 'failed' && (
+                      <Badge variant="destructive">
+                        <XCircle className="h-3 w-3 mr-1" />
+                        Fallito
+                      </Badge>
+                    )}
+                    {notification.status === 'pending' && (
+                      <Badge variant="secondary">
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        In attesa
+                      </Badge>
                     )}
                   </div>
                 </div>
-                <Badge
-                  variant={
-                    notification.status === 'sent' ? 'default' :
-                    notification.status === 'failed' ? 'destructive' : 'secondary'
-                  }
-                >
-                  {notification.status === 'sent' && 'Inviata'}
-                  {notification.status === 'failed' && 'Fallita'}
-                  {notification.status === 'pending' && 'In attesa'}
-                </Badge>
-              </div>
-            ))
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Bell className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>Nessuna notifica inviata</p>
+            </div>
           )}
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
     </div>
   )
 }
