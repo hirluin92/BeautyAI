@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation'
 import { requireAuth } from '@/lib/supabase/requireAuth'
 import EditClientClient from './EditClientClient'
 
@@ -14,7 +15,7 @@ export default async function EditClientPage({ params }: { params: { id: string 
     .single()
 
   if (error || !client) {
-    throw new Error('Cliente non trovato')
+    notFound()
   }
 
   return (

@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation'
 import { requireAuth } from '@/lib/supabase/requireAuth'
 import ServiceDetailClient from './ServiceDetailClient'
 
@@ -14,7 +15,7 @@ export default async function ServiceDetailPage({ params }: { params: { id: stri
     .single()
 
   if (serviceError || !service) {
-    throw new Error('Servizio non trovato')
+    notFound()
   }
 
   // Fetch recent bookings for this service

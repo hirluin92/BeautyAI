@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation'
 import { requireAuth } from '@/lib/supabase/requireAuth'
 import EditBookingClient from './EditBookingClient'
 
@@ -6,7 +7,7 @@ export default async function EditBookingPage({ params }: { params: { id: string
   const { id } = params
 
   // Fetch booking
-  const { data: booking } = await supabase
+  const { data: booking, error: bookingError } = await supabase
     .from('bookings')
     .select(`
       *,
@@ -17,6 +18,10 @@ export default async function EditBookingPage({ params }: { params: { id: string
     .eq('id', id)
     .eq('organization_id', userData.organization_id)
     .single()
+
+  if (bookingError || !booking) {
+    notFound()
+  }
 
   // Fetch services and staff for select options
   const { data: services } = await supabase

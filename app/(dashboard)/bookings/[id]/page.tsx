@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation'
 import { requireAuth } from '@/lib/supabase/requireAuth'
 import BookingDetailClient from './BookingDetailClient'
 
@@ -6,7 +7,7 @@ export default async function BookingDetailPage({ params }: { params: { id: stri
   const { id } = params
 
   // Fetch booking with relations
-  const { data: booking } = await supabase
+  const { data: booking, error: bookingError } = await supabase
     .from('bookings')
     .select(`
       *,
@@ -17,6 +18,10 @@ export default async function BookingDetailPage({ params }: { params: { id: stri
     .eq('id', id)
     .eq('organization_id', userData.organization_id)
     .single()
+
+  if (bookingError || !booking) {
+    notFound()
+  }
 
   return (
     <BookingDetailClient booking={booking} userData={userData} />

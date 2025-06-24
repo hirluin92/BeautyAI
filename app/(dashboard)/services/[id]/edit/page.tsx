@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation'
 import { requireAuth } from '@/lib/supabase/requireAuth'
 import EditServiceClient from './EditServiceClient'
 
@@ -14,7 +15,7 @@ export default async function EditServicePage({ params }: { params: { id: string
     .single()
 
   if (error || !service) {
-    throw new Error('Servizio non trovato')
+    notFound()
   }
 
   return (

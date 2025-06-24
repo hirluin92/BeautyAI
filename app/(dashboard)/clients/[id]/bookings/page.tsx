@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation'
 import { requireAuth } from '@/lib/supabase/requireAuth'
 import ClientBookingsClient from './ClientBookingsClient'
 
@@ -14,7 +15,7 @@ export default async function ClientBookingsPage({ params }: { params: { id: str
     .single()
 
   if (clientError || !client) {
-    throw new Error('Cliente non trovato')
+    notFound()
   }
 
   // Get client's bookings with related data
