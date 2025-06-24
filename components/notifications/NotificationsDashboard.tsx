@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Bell, Mail, MessageSquare, Clock, CheckCircle, XCircle } from 'lucide-react'
-import { NotificationService } from '@/lib/services/notification.service'
+import { NotificationService } from '@/lib/notifications/notification.service'
 import { toast } from 'sonner'
 
 export function NotificationsDashboard() {
@@ -15,7 +15,21 @@ export function NotificationsDashboard() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState<string | null>(null)
   
-  const notificationService = new NotificationService()
+  // Mock config - in production this should come from environment variables
+  const notificationConfig = {
+    emailjs: {
+      serviceId: process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || '',
+      templateId: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || '',
+      publicKey: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || ''
+    },
+    twilio: {
+      accountSid: process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID || '',
+      authToken: process.env.NEXT_PUBLIC_TWILIO_AUTH_TOKEN || '',
+      phoneNumber: process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER || ''
+    }
+  }
+  
+  const notificationService = new NotificationService(notificationConfig)
 
   useEffect(() => {
     loadNotifications()
@@ -24,7 +38,7 @@ export function NotificationsDashboard() {
   const loadNotifications = async () => {
     try {
       // Carica notifiche da inviare
-      const pending = await notificationService.getTodayNotifications()
+      const pending = await notificationService.getBookingsNeedingReminders('reminder_24h')
       setPendingNotifications(pending)
       
       // Qui potresti caricare anche lo storico delle notifiche inviate
@@ -36,13 +50,44 @@ export function NotificationsDashboard() {
     }
   }
 
-  const sendNotification = async (booking: any, type: 'reminder') => {
+  const sendNotification = async (booking: any, type: 'reminder_24h' | 'reminder_1h') => {
     setSending(booking.id)
     
     try {
-      const result = await notificationService.sendNotification(booking.id, type)
+      const notificationData = {
+        bookingId: booking.id,
+        clientName: booking.client.full_name,
+        clientEmail: booking.client.email,
+        clientPhone: booking.client.phone,
+        serviceName: booking.service.name,
+        staffName: booking.staff?.full_name,
+        date: new Date(booking.start_at).toLocaleDateString('it-IT', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        }),
+        time: new Date(booking.start_at).toLocaleTimeString('it-IT', {
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        duration: booking.service.duration_minutes,
+        price: booking.price || booking.service.price,
+        organizationName: 'Beauty Center', // This should come from organization settings
+        organizationPhone: '',
+        notificationPreferences: booking.notification_preferences || {
+          email: true,
+          sms: true,
+          whatsapp: true
+        }
+      }
       
-      if (result.success) {
+      const result = await notificationService.sendNotification(type, notificationData)
+      
+      // Check if at least one notification was sent successfully
+      const success = result.email.sent || result.sms.sent || result.whatsapp.sent
+      
+      if (success) {
         toast.success('Notifica inviata con successo!')
         // Rimuovi da pending e ricarica
         setPendingNotifications(prev => prev.filter(n => n.id !== booking.id))
@@ -61,7 +106,7 @@ export function NotificationsDashboard() {
     if (!confirmed) return
 
     for (const booking of pendingNotifications) {
-      await sendNotification(booking, 'reminder')
+      await sendNotification(booking, 'reminder_24h')
       // Piccola pausa tra invii
       await new Promise(resolve => setTimeout(resolve, 500))
     }
@@ -184,7 +229,7 @@ export function NotificationsDashboard() {
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      onClick={() => sendNotification(booking, 'reminder')}
+                      onClick={() => sendNotification(booking, 'reminder_24h')}
                       disabled={sending === booking.id}
                     >
                       {sending === booking.id ? (

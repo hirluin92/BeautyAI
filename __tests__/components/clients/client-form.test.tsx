@@ -63,6 +63,7 @@ describe('ClientForm Component', () => {
     last_visit_at: null,
     total_spent: null,
     visit_count: null,
+    is_active: true,
   }
 
   describe('Form Rendering', () => {
@@ -293,6 +294,7 @@ describe('ClientForm Component', () => {
       last_visit_at: null,
       total_spent: null,
       visit_count: null,
+      is_active: true,
     };
 
     beforeEach(() => {

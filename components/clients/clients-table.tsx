@@ -273,12 +273,12 @@ export default function ClientsTable({
                   <td className="px-6 py-4">
                     <div className="space-y-1">
                       <div className="flex items-center text-sm text-gray-900">
-                        <span className="font-medium">{client.visit_count || 0}</span>
+                        <span className="font-medium">{(client as any).visit_count || 0}</span>
                         <span className="text-gray-500 ml-1">visite</span>
                       </div>
                       <div className="flex items-center text-sm text-gray-500">
                         <Euro className="w-3 h-3 mr-1" />
-                        {client.total_spent ? `€${Number(client.total_spent).toFixed(2)}` : '€0.00'}
+                        {(client as any).total_spent ? `€${Number((client as any).total_spent).toFixed(2)}` : '€0.00'}
                       </div>
                     </div>
                   </td>
@@ -304,8 +304,8 @@ export default function ClientsTable({
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
-                    {client.last_visit_at 
-                      ? formatDate(client.last_visit_at)
+                    {(client as any).last_visit_at 
+                      ? formatDate((client as any).last_visit_at)
                       : 'Mai'
                     }
                   </td>

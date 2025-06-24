@@ -1,5 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { clientSchema } from '@/lib/validation/client'
+import { z } from 'zod'
+import { requireAuth } from '@/lib/supabase/requireAuth'
 
 // GET /api/clients/[id]
 export async function GET(
@@ -7,142 +10,177 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    const { data: userData } = await supabase
-      .from('users')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-    if (!userData || !userData.organization_id) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
-    }
-    const { data, error } = await supabase
+    const { userData, supabase } = await requireAuth()
+    
+    console.log('👥 Getting client for organization:', userData.organization.name)
+    
+    // Get client with bookings
+    const { data: client, error: clientError } = await supabase
       .from('clients')
       .select('*')
       .eq('id', params.id)
-      .eq('organization_id', userData.organization_id!)
+      .eq('organization_id', userData.organization.id)
       .single()
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-    if (!data) {
+    
+    if (clientError || !client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
-    return NextResponse.json(data)
+
+    // Get client's bookings with related data
+    const { data: bookings, error: bookingsError } = await supabase
+      .from('bookings')
+      .select(`
+        *,
+        service:services(id, name, price, duration_minutes, category),
+        staff:staff(id, full_name, role)
+      `)
+      .eq('client_id', params.id)
+      .eq('organization_id', userData.organization.id)
+      .order('start_at', { ascending: false })
+      .limit(10) // Get only recent bookings
+
+    if (bookingsError) {
+      console.error('Error fetching bookings:', bookingsError)
+    }
+
+    return NextResponse.json({
+      client,
+      bookings: bookings || []
+    })
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
   }
 }
 
-// PATCH /api/clients/[id]
-export async function PATCH(
-  request: Request,
+// PUT /api/clients/[id]
+export async function PUT(
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = await createClient()
+    const { userData, supabase } = await requireAuth()
+    
+    console.log('👥 Updating client for organization:', userData.organization.name)
+    
     const body = await request.json()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+    
+    // Validazione Zod
+    const parseResult = clientSchema.partial().safeParse(body)
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Dati non validi', details: parseResult.error.flatten() },
+        { status: 400 }
+      )
     }
-    const { data: userData } = await supabase
-      .from('users')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-    if (!userData || !userData.organization_id) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
+    const validData = parseResult.data
+
+    // Check if client with same phone already exists (excluding current client)
+    if (validData.phone) {
+      const { data: existingClient } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('organization_id', userData.organization.id)
+        .eq('phone', validData.phone)
+        .neq('id', params.id)
+        .single()
+
+      if (existingClient) {
+        return NextResponse.json(
+          { error: 'Un cliente con questo numero di telefono esiste già' },
+          { status: 409 }
+        )
+      }
     }
-    // Rimuovi campi non aggiornabili
-    delete body.id
-    delete body.organization_id
-    delete body.created_at
-    delete body.updated_at
-    const { data, error } = await supabase
+
+    // Update client
+    const { data: client, error } = await supabase
       .from('clients')
-      .update(body)
+      .update({
+        full_name: validData.full_name,
+        phone: validData.phone,
+        email: validData.email || null,
+        whatsapp_phone: validData.whatsapp_phone || validData.phone,
+        birth_date: validData.birth_date || null,
+        notes: validData.notes || null,
+        tags: validData.tags || []
+      })
       .eq('id', params.id)
-      .eq('organization_id', userData.organization_id!)
+      .eq('organization_id', userData.organization.id)
       .select()
       .single()
+
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      console.error('Error updating client:', error)
+      return NextResponse.json(
+        { error: 'Failed to update client' },
+        { status: 500 }
+      )
     }
-    if (!data) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+
+    if (!client) {
+      return NextResponse.json(
+        { error: 'Client not found' },
+        { status: 404 }
+      )
     }
-    return NextResponse.json(data)
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+
+    return NextResponse.json(client)
+
+  } catch (error) {
+    console.error('Error in clients PUT:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }
 
 // DELETE /api/clients/[id]
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    const { data: userData } = await supabase
-      .from('users')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-    if (!userData || !userData.organization_id) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
-    }
-    // Check if client has bookings
+    const { userData, supabase } = await requireAuth()
+    
+    console.log('👥 Deleting client for organization:', userData.organization.name)
+    
+    // Check if client has any bookings
     const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
       .select('id')
       .eq('client_id', params.id)
-      .eq('organization_id', userData.organization_id)
+      .eq('organization_id', userData.organization.id)
       .limit(1)
-    if (bookingsError) {
-      return NextResponse.json({ error: 'Errore nel controllo delle prenotazioni', details: bookingsError.message }, { status: 500 })
-    }
+
+    if (bookingsError) throw bookingsError
+
     if (bookings && bookings.length > 0) {
-      return NextResponse.json({ error: 'Non puoi eliminare un cliente con prenotazioni associate', hasBookings: true }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Cannot delete client with existing bookings' },
+        { status: 400 }
+      )
     }
-    // Check if client has payments
-    const { data: payments, error: paymentsError } = await supabase
-      .from('payments')
-      .select('id')
-      .eq('client_id', params.id)
-      .eq('organization_id', userData.organization_id)
-      .limit(1)
-    if (paymentsError) {
-      return NextResponse.json({ error: 'Errore nel controllo dei pagamenti', details: paymentsError.message }, { status: 500 })
-    }
-    if (payments && payments.length > 0) {
-      return NextResponse.json({ error: 'Non puoi eliminare un cliente con pagamenti associati', hasPayments: true }, { status: 400 })
-    }
-    // Soft delete
-    const { data, error } = await supabase
+
+    const { error } = await supabase
       .from('clients')
-      .update({ deleted_at: new Date().toISOString() })
+      .delete()
       .eq('id', params.id)
-      .eq('organization_id', userData.organization_id)
-      .select()
-      .single()
+      .eq('organization_id', userData.organization.id)
+
     if (error) {
-      return NextResponse.json({ error: 'Errore durante l\'eliminazione del cliente', details: error.message }, { status: 500 })
+      if (error.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      }
+      throw error
     }
-    if (!data) {
-      return NextResponse.json({ error: 'Cliente non trovato' }, { status: 404 })
-    }
-    return NextResponse.json({ success: true, message: 'Cliente eliminato con successo' })
+
+    return NextResponse.json({ message: 'Client deleted successfully' })
   } catch (error: any) {
-    return NextResponse.json({ error: 'Errore interno del server', details: error.message }, { status: 500 })
+    console.error('Error deleting client:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }

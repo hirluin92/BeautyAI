@@ -6,24 +6,42 @@ import { Search, Filter, X } from 'lucide-react'
 
 interface ServicesSearchProps {
   categories: string[]
-  defaultSearch?: string
-  defaultCategory?: string
-  defaultStatus?: 'active' | 'inactive' | 'all'
+  defaultSearch: string
+  defaultCategory: string
+  defaultStatus: 'active' | 'inactive' | 'all'
+  onSearch: (value: string) => void
+  onCategoryChange: (value: string) => void
+  onStatusChange: (value: 'active' | 'inactive' | 'all') => void
 }
 
-export default function ServicesSearch({ 
-  categories, 
-  defaultSearch = '', 
-  defaultCategory = '',
-  defaultStatus = 'all'
+export default function ServicesSearch({
+  categories,
+  defaultSearch,
+  defaultCategory,
+  defaultStatus,
+  onSearch,
+  onCategoryChange,
+  onStatusChange,
 }: ServicesSearchProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   
   const [search, setSearch] = useState(defaultSearch)
   const [category, setCategory] = useState(defaultCategory)
-  const [status, setStatus] = useState(defaultStatus)
+  const [status, setStatus] = useState<'active' | 'inactive' | 'all'>(defaultStatus)
   const [showFilters, setShowFilters] = useState(false)
+
+  useEffect(() => {
+    onSearch(search)
+  }, [search])
+
+  useEffect(() => {
+    onCategoryChange(category)
+  }, [category])
+
+  useEffect(() => {
+    onStatusChange(status)
+  }, [status])
 
   // Debounced search
   useEffect(() => {

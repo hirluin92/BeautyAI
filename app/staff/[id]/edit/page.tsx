@@ -1,0 +1,45 @@
+import { notFound } from 'next/navigation'
+import { requireAuth } from '@/lib/supabase/requireAuth'
+import StaffForm from '@/components/staff/staff-form'
+import React from 'react'
+
+interface EditStaffPageProps {
+  params: {
+    id: string
+  }
+}
+
+export default async function EditStaffPage({ params }: EditStaffPageProps) {
+  const { userData, supabase } = await requireAuth()
+
+  // Get staff member
+  const { data: staff, error } = await supabase
+    .from('staff')
+    .select('*')
+    .eq('id', params.id)
+    .eq('organization_id', userData.organization_id)
+    .single()
+
+  if (!staff) {
+    notFound()
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Modifica Staff</h1>
+        <p className="mt-2 text-gray-600">
+          Modifica le informazioni del membro del team
+        </p>
+      </div>
+
+      <div className="max-w-2xl">
+        <StaffForm 
+          organizationId={userData.organization_id}
+          mode="edit" 
+          staff={staff}
+        />
+      </div>
+    </div>
+  )
+} 

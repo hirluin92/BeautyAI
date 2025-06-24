@@ -1,146 +1,95 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { ServiceInsert } from '@/types'
+import type { NextRequest } from 'next/server'
+import { rateLimitManager, rateLimitResponse } from '@/lib/rate-limit'
+import { serviceSchema } from '@/lib/validation/service'
+import { requireAuth } from '@/lib/supabase/requireAuth'
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    // Rate limiting
+    const result = await rateLimitManager.checkRateLimit(
+      request,
+      'dashboard',
+      '/api/services'
+    )
     
-    // Check auth
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!result.success) {
+      return rateLimitResponse(result.retryAfter)
     }
 
-    // Get user's organization
-    const { data: userData } = await supabase
-      .from('users')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (!userData) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    // Parse query params
-    const { searchParams } = new URL(request.url)
-    const search = searchParams.get('search')
-    const category = searchParams.get('category')
-    const status = searchParams.get('status')
-    const page = parseInt(searchParams.get('page') || '1')
-    const perPage = parseInt(searchParams.get('per_page') || '10')
+    const { userData, supabase } = await requireAuth()
     
-    const from = (page - 1) * perPage
-    const to = from + perPage - 1
+    console.log('🛠️ Getting services for organization:', userData.organization.name)
 
-    // Build query
-    let query = supabase
+    // Get services - only active ones
+    const { data: services, error } = await supabase
       .from('services')
-      .select('*', { count: 'exact' })
-      .eq('organization_id', userData.organization_id)
+      .select('*')
+      .eq('organization_id', userData.organization.id)
+      .is('deleted_at', null)
+      .order('category', { ascending: true })
       .order('name', { ascending: true })
-
-    // Apply filters
-    if (search) {
-      query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`)
-    }
-
-    if (category) {
-      query = query.eq('category', category)
-    }
-
-    if (status && status !== 'all') {
-      query = query.eq('is_active', status === 'active')
-    }
-
-    // Execute query with pagination
-    const { data: services, error, count } = await query.range(from, to)
 
     if (error) {
       console.error('Error fetching services:', error)
-      return NextResponse.json({ error: 'Failed to fetch services' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'Failed to fetch services' },
+        { status: 500 }
+      )
     }
 
-    return NextResponse.json({
-      services,
-      pagination: {
-        page,
-        perPage,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / perPage)
-      }
-    })
+    return NextResponse.json({ services })
+
   } catch (error) {
-    console.error('Unexpected error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error in services GET:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    // Rate limiting
+    const result = await rateLimitManager.checkRateLimit(
+      request,
+      'dashboard',
+      '/api/services'
+    )
     
-    // Check auth
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!result.success) {
+      return rateLimitResponse(result.retryAfter)
     }
 
-    // Get user's organization
-    const { data: userData } = await supabase
-      .from('users')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (!userData) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    // Parse body
+    const { userData, supabase } = await requireAuth()
+    
+    console.log('🛠️ Creating service for organization:', userData.organization.name)
     const body = await request.json()
-    
-    // Validate required fields
-    if (!body.name || !body.price || !body.duration_minutes) {
+
+    // Validazione Zod
+    const parseResult = serviceSchema.safeParse(body)
+    if (!parseResult.success) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Dati non validi', details: parseResult.error.flatten() },
         { status: 400 }
       )
     }
+    const validData = parseResult.data
 
-    // Validate data types and ranges
-    if (body.price < 0) {
-      return NextResponse.json(
-        { error: 'Price cannot be negative' },
-        { status: 400 }
-      )
-    }
-
-    if (body.duration_minutes < 5 || body.duration_minutes > 480) {
-      return NextResponse.json(
-        { error: 'Duration must be between 5 and 480 minutes' },
-        { status: 400 }
-      )
-    }
-
-    // Create service data
-    const serviceData: ServiceInsert = {
-      name: body.name,
-      description: body.description || null,
-      category: body.category || null,
-      price: body.price,
-      duration_minutes: body.duration_minutes,
-      is_active: body.is_active ?? true,
-      organization_id: userData.organization_id
-    }
-
-    // Insert service
+    // Create service
     const { data: service, error } = await supabase
       .from('services')
-      .insert(serviceData)
+      .insert({
+        organization_id: userData.organization.id,
+        name: validData.name,
+        description: validData.description || null,
+        price: validData.price,
+        duration_minutes: validData.duration_minutes,
+        category: validData.category || null,
+        is_active: validData.is_active ?? true
+      })
       .select()
       .single()
 
@@ -152,9 +101,13 @@ export async function POST(request: Request) {
       )
     }
 
-    return NextResponse.json({ service }, { status: 201 })
+    return NextResponse.json(service, { status: 201 })
+
   } catch (error) {
-    console.error('Unexpected error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Error in services POST:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }

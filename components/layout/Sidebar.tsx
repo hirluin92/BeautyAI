@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BarChart3, Calendar, Users, Package, MessageSquare, Settings, LogOut } from 'lucide-react'
+import { BarChart3, Calendar, Users, Package, MessageSquare, Settings, LogOut, Shield, UserCheck } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 const menu = [
@@ -9,7 +9,9 @@ const menu = [
   { href: '/calendar', label: 'Calendario', icon: Calendar },
   { href: '/clients', label: 'Clienti', icon: Users },
   { href: '/services', label: 'Servizi', icon: Package },
-  { href: '/chat', label: 'Chat WhatsApp', icon: MessageSquare },
+  { href: '/staff', label: 'Staff', icon: UserCheck },
+  { href: '/conversations', label: 'Chat WhatsApp', icon: MessageSquare },
+  { href: '/admin', label: 'Admin Panel', icon: Shield },
   { href: '/settings', label: 'Impostazioni', icon: Settings },
 ]
 

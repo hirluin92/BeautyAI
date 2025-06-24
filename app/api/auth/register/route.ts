@@ -1,105 +1,152 @@
-// app/api/auth/register/route.ts
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { rateLimitManager, rateLimitResponse } from '@/lib/rate-limit'
+import { z } from 'zod'
 
-export async function POST(request: Request) {
+// Validation schema
+const registerSchema = z.object({
+  email: z.string().email('Email non valida'),
+  password: z.string().min(6, 'Password deve essere di almeno 6 caratteri'),
+  name: z.string().min(1, 'Nome è obbligatorio'),
+  organization_name: z.string().min(1, 'Nome organizzazione è obbligatorio'),
+  phone: z.string().optional()
+})
+
+export async function POST(request: NextRequest) {
   try {
-    const { email, password, fullName, organizationName } = await request.json()
+    // Rate limiting per registrazione (più restrittivo)
+    const result = await rateLimitManager.checkRateLimit(
+      request,
+      'dashboard',
+      '/api/auth/register'
+    )
     
-    // Crea un client Supabase normale per auth
-    const supabase = await createClient()
-    
-    // Crea un client Supabase con service role per bypassare RLS
-    const serviceSupabase = createServiceClient()
-    
-    // 1. Crea l'utente con Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
+    if (!result.success) {
+      return rateLimitResponse(result.retryAfter)
+    }
+
+    const body = await request.json()
+    // Validate request body
+    const validatedData = registerSchema.parse(body)
+
+    // Create service role client for admin operations
+    const cookieStore = await cookies();
+    const serviceClient = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options) {
+            cookieStore.set({ name, value, ...options });
+          },
+          remove(name: string, options) {
+            cookieStore.set({ name, value: '', ...options });
+          },
+        },
+      }
+    )
+
+    // Create user account
+    const { data: authData, error: authError } = await serviceClient.auth.signUp({
+      email: validatedData.email,
+      password: validatedData.password,
       options: {
         data: {
-          full_name: fullName,
+          name: validatedData.name,
         }
       }
     })
 
-    if (authError) {
+    if (authError || !authData.user) {
       console.error('Auth error:', authError)
       return NextResponse.json(
-        { error: authError.message },
+        { error: authError?.message || 'Errore durante la registrazione' },
         { status: 400 }
       )
     }
 
-    if (!authData.user) {
-      return NextResponse.json(
-        { error: 'Registrazione fallita' },
-        { status: 400 }
-      )
-    }
-
-    // 2. Crea l'organizzazione
-    const orgSlug = organizationName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '')
-
-    const { data: org, error: orgError } = await serviceSupabase
+    // Create organization
+    const { data: organization, error: orgError } = await serviceClient
       .from('organizations')
       .insert({
-        name: organizationName,
-        slug: orgSlug,
-        email: email,
+        name: validatedData.organization_name,
         plan_type: 'free',
-        client_count: 0
+        settings: {
+          business_hours: {
+            monday: { open: '09:00', close: '18:00', isOpen: true },
+            tuesday: { open: '09:00', close: '18:00', isOpen: true },
+            wednesday: { open: '09:00', close: '18:00', isOpen: true },
+            thursday: { open: '09:00', close: '18:00', isOpen: true },
+            friday: { open: '09:00', close: '18:00', isOpen: true },
+            saturday: { open: '09:00', close: '13:00', isOpen: true },
+            sunday: { open: '09:00', close: '13:00', isOpen: false }
+          },
+          booking_settings: {
+            slot_duration: 30,
+            advance_booking_days: 30,
+            cancellation_hours: 24
+          }
+        },
+        owner_id: authData.user.id
       })
       .select()
       .single()
 
-    if (orgError) {
+    if (orgError || !organization) {
       console.error('Organization error:', orgError)
-      // Rollback: elimina l'utente auth
-      await serviceSupabase.auth.admin.deleteUser(authData.user.id)
+      await serviceClient.auth.admin.deleteUser(authData.user.id)
       return NextResponse.json(
-        { error: `Errore creazione organizzazione: ${orgError.message}` },
-        { status: 400 }
+        { error: 'Errore durante la creazione dell\'organizzazione' },
+        { status: 500 }
       )
     }
 
-    // 3. Aggiorna il record utente con i dati extra
-    const { error: userError } = await serviceSupabase
+    // Create user profile
+    const { error: userError } = await serviceClient
       .from('users')
-      .update({
-        full_name: fullName,
-        organization_id: org.id,
+      .insert({
+        id: authData.user.id,
+        email: authData.user.email!,
+        full_name: validatedData.name,
+        phone: validatedData.phone || null,
+        organization_id: organization.id,
         role: 'owner',
-        is_active: true
+        avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(validatedData.name)}&background=6366f1&color=fff`,
       })
-      .eq('id', authData.user.id)
 
     if (userError) {
-      console.error('User error:', userError)
-      // Rollback: elimina organizzazione e utente auth
-      await serviceSupabase.from('organizations').delete().eq('id', org.id)
-      await serviceSupabase.auth.admin.deleteUser(authData.user.id)
+      console.error('User profile error:', userError)
+      await serviceClient.from('organizations').delete().eq('id', organization.id)
+      await serviceClient.auth.admin.deleteUser(authData.user.id)
       return NextResponse.json(
-        { error: `Errore aggiornamento profilo utente: ${userError.message}` },
-        { status: 400 }
+        { error: 'Errore durante la creazione del profilo utente' },
+        { status: 500 }
       )
     }
 
-    // 4. Redirect a login con messaggio
     return NextResponse.json({
-      success: true,
-      message: "Registrazione completata! Controlla la tua email per confermare l'account.",
-      redirect: '/login?registered=true'
+      message: 'Registrazione completata con successo',
+      user: authData.user,
+      organization: organization
     })
 
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto'
-    console.error('Registration error:', errorMessage)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Dati non validi', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
+    console.error('Registration error:', error)
     return NextResponse.json(
-      { error: 'Errore interno del server' },
+      { error: 'Errore del server' },
       { status: 500 }
     )
   }

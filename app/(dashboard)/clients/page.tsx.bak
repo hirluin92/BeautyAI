@@ -1,0 +1,234 @@
+// app/(dashboard)/clients/page.tsx - SENZA requireAuth
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { Plus, Upload, Download } from 'lucide-react'
+
+export default async function ClientsPage() {
+  const supabase = await createClient()
+
+  // Auth check - come nel calendar
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) {
+    redirect('/login')
+  }
+
+  // Get user data with organization - come nel calendar
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('*, organization:organizations(*)')
+    .eq('id', user.id)
+    .single()
+
+  if (userError || !userData) {
+    redirect('/auth/complete-setup')
+  }
+
+  if (!userData.organization_id || !userData.organization) {
+    redirect('/auth/complete-setup')
+  }
+
+  console.log('✅ Clients page loaded for org:', userData.organization.name)
+
+  // Fetch clients data
+  const { data: clientsData, error, count } = await supabase
+    .from('clients')
+    .select('*', { count: 'exact' })
+    .eq('organization_id', userData.organization_id)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching clients:', error)
+  }
+
+  const clients = clientsData || []
+  const totalCount = count || 0
+
+  // Calculate stats
+  const now = new Date()
+  const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate())
+
+  const newThisMonth = clients.filter(client => 
+    new Date(client.created_at) >= thisMonth
+  ).length
+
+  const inactiveClients = clients.filter(client => 
+    client.last_visit_at && new Date(client.last_visit_at) < threeMonthsAgo
+  ).length
+
+  // VIP clients (basic logic)
+  const vipClients = clients.filter(client => 
+    (client.total_spent || 0) > 500 || (client.visit_count || 0) > 5
+  ).length
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Clienti</h1>
+          <p className="text-gray-600 mt-2">Gestisci i tuoi clienti e le loro informazioni</p>
+        </div>
+        <div className="flex gap-3">
+          <button className="flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+            <Upload className="w-4 h-4 mr-2" />
+            Importa CSV
+          </button>
+          <button className="flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+            <Download className="w-4 h-4 mr-2" />
+            Esporta
+          </button>
+          <Link href="/clients/new" className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
+            <Plus className="w-4 h-4 mr-2" />
+            Nuovo Cliente
+          </Link>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Clienti Totali</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{totalCount}</p>
+            </div>
+            <div className="bg-blue-50 rounded-full p-3">
+              <span className="text-blue-600 text-xl">👥</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Nuovi Questo Mese</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{newThisMonth}</p>
+            </div>
+            <div className="bg-green-50 rounded-full p-3">
+              <span className="text-green-600 text-xl">📈</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Cliente VIP</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{vipClients}</p>
+            </div>
+            <div className="bg-yellow-50 rounded-full p-3">
+              <span className="text-yellow-600 text-xl">⭐</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Inattivi +3 mesi</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">{inactiveClients}</p>
+            </div>
+            <div className="bg-red-50 rounded-full p-3">
+              <span className="text-red-600 text-xl">😴</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Clients Table */}
+      <div className="bg-white shadow rounded-lg">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-medium text-gray-900">Lista Clienti</h2>
+        </div>
+
+        {clients.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">👥</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Nessun cliente</h3>
+            <p className="text-gray-600 mb-6">Inizia aggiungendo il tuo primo cliente.</p>
+            <Link
+              href="/clients/new"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Nuovo Cliente
+            </Link>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Cliente
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Contatto
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Visite
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Spesa Totale
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ultima Visita
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Azioni
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {clients.map((client) => (
+                  <tr key={client.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {client.full_name}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{client.phone}</div>
+                      {client.email && (
+                        <div className="text-sm text-gray-500">{client.email}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {client.visit_count || 0}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      €{(client.total_spent || 0).toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {client.last_visit_at 
+                        ? new Date(client.last_visit_at).toLocaleDateString('it-IT')
+                        : 'Mai'
+                      }
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <Link
+                        href={`/clients/${client.id}`}
+                        className="text-indigo-600 hover:text-indigo-900 mr-4"
+                      >
+                        Visualizza
+                      </Link>
+                      <Link
+                        href={`/bookings/new?client=${client.id}`}
+                        className="text-green-600 hover:text-green-900"
+                      >
+                        Prenota
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

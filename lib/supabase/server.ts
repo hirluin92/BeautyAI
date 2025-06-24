@@ -4,7 +4,7 @@ import { Database } from '@/types/database'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
 export async function createClient() {
-  const cookieStore = await cookies()
+  const cookieStore = await cookies();
 
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,20 +14,7 @@ export async function createClient() {
         get(name: string) {
           return cookieStore.get(name)?.value
         },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options })
-          } catch (error) {
-            // Il cookie store è read-only in Server Components
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: '', ...options })
-          } catch (error) {
-            // Il cookie store è read-only in Server Components
-          }
-        },
+        // Non serve set/remove in Server Component
       },
     }
   )

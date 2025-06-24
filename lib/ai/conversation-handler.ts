@@ -23,8 +23,263 @@ export class ConversationHandler {
   }
 
   async processMessage(message: WhatsAppMessage): Promise<AIResponse> {
-    console.log('🤖 Processing message:', message.text)
+    try {
+      console.log('🤖 Processing message:', message.text)
 
+      // SPAM PROTECTION - Controlli di sicurezza
+      const spamCheck = await this.checkForSpam(message)
+      if (spamCheck.isSpam) {
+        console.log('🚫 Spam detected, ignoring message')
+        return {
+          text: spamCheck.response || 'Messaggio non riconosciuto.',
+          quickReplies: [],
+          buttons: undefined,
+        }
+      }
+
+      // RATE LIMITING - Limita risposte per numero
+      const rateLimitCheck = await this.checkRateLimit(message.from)
+      if (rateLimitCheck.isLimited) {
+        console.log('⏰ Rate limit exceeded, sending wait message')
+        return {
+          text: rateLimitCheck.response || 'Troppi messaggi inviati.',
+          quickReplies: [],
+          buttons: undefined,
+        }
+      }
+
+      // BUSINESS HOURS CHECK - Controlla orari di apertura
+      const businessHoursCheck = await this.checkBusinessHours()
+      if (!businessHoursCheck.isOpen) {
+        console.log('🏪 Outside business hours, sending auto-reply')
+        return {
+          text: businessHoursCheck.response || 'Siamo chiusi.',
+          quickReplies: [],
+          buttons: undefined,
+        }
+      }
+
+      // CONVERSATION CONTEXT - Mantieni contesto conversazione
+      await this.updateConversationContext(message)
+
+      // AI PROCESSING - Processa con OpenAI
+      const aiResponse = await this.generateAIResponse(message)
+
+      // LOG CONVERSATION - Registra conversazione
+      await this.logConversation(message, aiResponse.text)
+
+      return aiResponse
+
+    } catch (error) {
+      console.error('❌ Error processing message:', error)
+      return this.getFallbackResponse()
+    }
+  }
+
+  // SPAM PROTECTION
+  private async checkForSpam(message: WhatsAppMessage): Promise<{ isSpam: boolean; response?: string }> {
+    const supabase = await createClient()
+    
+    // 1. CONTROLLO WHITELIST - Amici e clienti esistenti
+    const isWhitelisted = await this.checkWhitelist(message.from)
+    if (isWhitelisted) {
+      console.log('✅ Whitelisted contact, bypassing spam checks')
+      return { isSpam: false }
+    }
+
+    // 2. CONTROLLO CLIENTE ESISTENTE - Se è già un cliente
+    const isExistingClient = await this.checkExistingClient(message.from)
+    if (isExistingClient) {
+      console.log('✅ Existing client, bypassing spam checks')
+      return { isSpam: false }
+    }
+
+    // 3. CONTROLLO MESSAGGI RECENTI - Solo per nuovi contatti
+    const recentMessages = await supabase
+      .from('conversation_logs')
+      .select('created_at')
+      .eq('organization_id', this.organizationId)
+      .eq('from_number', message.from)
+      .gte('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString()) // Ultimi 5 minuti
+      .limit(10)
+
+    if (recentMessages.data && recentMessages.data.length >= 10) {
+      return {
+        isSpam: true,
+        response: 'Mi dispiace, stai inviando troppi messaggi. Riprova tra qualche minuto.'
+      }
+    }
+
+    // 4. CONTROLLO PAROLE CHIAVE SPAM - Solo per nuovi contatti
+    const spamKeywords = ['spam', 'lottery', 'winner', 'prize', 'urgent', 'limited time', 'free money', 'crypto', 'investment']
+    const messageLower = (message.text || '').toLowerCase()
+    
+    if (spamKeywords.some(keyword => messageLower.includes(keyword))) {
+      return {
+        isSpam: true,
+        response: 'Messaggio non riconosciuto. Per assistenza, contattaci durante gli orari di apertura.'
+      }
+    }
+
+    // 5. CONTROLLO LUNGHEZZA MESSAGGIO - Solo per nuovi contatti
+    if ((message.text || '').length > 500) {
+      return {
+        isSpam: true,
+        response: 'Il messaggio è troppo lungo. Invia un messaggio più breve.'
+      }
+    }
+
+    return { isSpam: false }
+  }
+
+  // WHITELIST CHECK - Amici e contatti fidati
+  private async checkWhitelist(fromNumber: string): Promise<boolean> {
+    const supabase = await createClient()
+    
+    const { data: whitelist } = await supabase
+      .from('whatsapp_whitelist')
+      .select('*')
+      .eq('organization_id', this.organizationId)
+      .eq('phone_number', fromNumber)
+      .eq('is_active', true)
+      .single()
+
+    return !!whitelist
+  }
+
+  // EXISTING CLIENT CHECK - Clienti già nel database
+  private async checkExistingClient(fromNumber: string): Promise<boolean> {
+    const supabase = await createClient()
+    
+    const { data: client } = await supabase
+      .from('clients')
+      .select('id')
+      .eq('organization_id', this.organizationId)
+      .or(`phone.eq.${fromNumber},whatsapp_phone.eq.${fromNumber}`)
+      .single()
+
+    return !!client
+  }
+
+  // RATE LIMITING - Più permissivo per clienti esistenti
+  private async checkRateLimit(fromNumber: string): Promise<{ isLimited: boolean; response?: string }> {
+    const supabase = await createClient()
+    
+    // Controlla se è cliente esistente o whitelist
+    const isExistingClient = await this.checkExistingClient(fromNumber)
+    const isWhitelisted = await this.checkWhitelist(fromNumber)
+    
+    // Limiti diversi per clienti esistenti vs nuovi
+    const maxMessages = isExistingClient || isWhitelisted ? 50 : 20 // Più permissivo per clienti
+    const timeWindow = isExistingClient || isWhitelisted ? 30 : 10 // Minuti
+
+    const recentMessages = await supabase
+      .from('conversation_logs')
+      .select('created_at')
+      .eq('organization_id', this.organizationId)
+      .eq('from_number', fromNumber)
+      .gte('created_at', new Date(Date.now() - timeWindow * 60 * 1000).toISOString())
+      .limit(maxMessages)
+
+    if (recentMessages.data && recentMessages.data.length >= maxMessages) {
+      const message = isExistingClient || isWhitelisted 
+        ? 'Hai inviato molti messaggi. Ti risponderemo al più presto.'
+        : 'Hai inviato troppi messaggi. Riprova tra 10 minuti o contattaci telefonicamente.'
+      
+      return {
+        isLimited: true,
+        response: message
+      }
+    }
+
+    return { isLimited: false }
+  }
+
+  // BUSINESS HOURS CHECK
+  private async checkBusinessHours(): Promise<{ isOpen: boolean; response?: string }> {
+    const now = new Date()
+    const hour = now.getHours()
+    const day = now.getDay() // 0 = Domenica, 1 = Lunedì, etc.
+
+    // Orari di apertura (personalizzabili)
+    const businessHours = {
+      1: { start: 9, end: 19 }, // Lunedì
+      2: { start: 9, end: 19 }, // Martedì
+      3: { start: 9, end: 19 }, // Mercoledì
+      4: { start: 9, end: 19 }, // Giovedì
+      5: { start: 9, end: 19 }, // Venerdì
+      6: { start: 9, end: 17 }, // Sabato
+      0: { start: 0, end: 0 }   // Domenica (chiuso)
+    }
+
+    const todayHours = businessHours[day as keyof typeof businessHours]
+    
+    if (day === 0) { // Domenica
+      return {
+        isOpen: false,
+        response: 'Siamo chiusi la domenica. Ti risponderemo lunedì dalle 9:00 alle 19:00. Per urgenze, lascia un messaggio e ti richiameremo.'
+      }
+    }
+
+    if (hour < todayHours.start || hour >= todayHours.end) {
+      return {
+        isOpen: false,
+        response: `Siamo chiusi. Orari di apertura: ${todayHours.start}:00 - ${todayHours.end}:00. Ti risponderemo al più presto.`
+      }
+    }
+
+    return { isOpen: true }
+  }
+
+  // CONVERSATION CONTEXT
+  private async updateConversationContext(message: WhatsAppMessage): Promise<void> {
+    const supabase = await createClient()
+    
+    // Aggiorna o crea contesto conversazione
+    await supabase
+      .from('conversation_contexts')
+      .upsert({
+        organization_id: this.organizationId,
+        session_id: this.sessionId,
+        from_number: message.from,
+        last_message: message.text,
+        last_activity: new Date().toISOString(),
+        message_count: supabase.rpc('increment_message_count', { session_id: this.sessionId })
+      })
+  }
+
+  // LOG CONVERSATION
+  private async logConversation(message: WhatsAppMessage, response: string): Promise<void> {
+    const supabase = await createClient()
+    
+    await supabase
+      .from('conversation_logs')
+      .insert({
+        organization_id: this.organizationId,
+        session_id: this.sessionId,
+        from_number: message.from,
+        message_text: message.text,
+        response_text: response,
+        created_at: new Date().toISOString()
+      })
+  }
+
+  // FALLBACK RESPONSE
+  private getFallbackResponse(): AIResponse {
+    return {
+      text: 'Mi dispiace, c\'è stato un problema tecnico. Riprova tra qualche minuto o contattaci telefonicamente.',
+      quickReplies: [],
+      buttons: undefined,
+    }
+  }
+
+  // GENERATE AI RESPONSE - Metodo esistente che chiama OpenAI
+  private async generateAIResponse(message: WhatsAppMessage): Promise<AIResponse> {
+    // Usa il metodo esistente per generare la risposta AI
+    return await this.processMessageWithAI(message)
+  }
+
+  private async processMessageWithAI(message: WhatsAppMessage): Promise<AIResponse> {
     // Add message to history
     this.context.messageHistory.push({
       role: 'user',
@@ -162,6 +417,41 @@ export class ConversationHandler {
             required: ['service_id'],
           },
         },
+        {
+          name: 'collect_feedback',
+          description: 'Raccoglie feedback da un cliente su un servizio o esperienza',
+          parameters: {
+            type: 'object',
+            properties: {
+              client_phone: {
+                type: 'string',
+                description: 'Numero di telefono del cliente',
+              },
+              service_id: {
+                type: 'string',
+                description: 'ID del servizio (opzionale)',
+              },
+              booking_id: {
+                type: 'string',
+                description: 'ID della prenotazione (opzionale)',
+              },
+              rating: {
+                type: 'number',
+                description: 'Valutazione da 1 a 5 stelle',
+              },
+              comment: {
+                type: 'string',
+                description: 'Commento del cliente',
+              },
+              category: {
+                type: 'string',
+                enum: ['service', 'staff', 'facility', 'overall'],
+                description: 'Categoria del feedback',
+              },
+            },
+            required: ['client_phone', 'rating'],
+          },
+        },
       ],
       function_call: 'auto',
       temperature: 0.7,
@@ -217,6 +507,8 @@ export class ConversationHandler {
           return await this.getServices(parsedArgs)
         case 'get_service_info':
           return await this.getServiceInfo(parsedArgs)
+        case 'collect_feedback':
+          return await this.collectFeedback(parsedArgs)
         default:
           throw new Error(`Unknown function: ${name}`)
       }
@@ -717,21 +1009,128 @@ export class ConversationHandler {
   private async getServiceInfo(args: any): Promise<FunctionResponse> {
     const supabase = await createClient()
     
-    const { data: service, error } = await supabase
-      .from('services')
-      .select('*')
-      .eq('organization_id', this.organizationId)
-      .eq('is_active', true)
-      .ilike('name', `%${args.service_name}%`)
-      .single()
+    try {
+      const { service_id } = args
+      
+      const { data: service, error } = await supabase
+        .from('services')
+        .select(`
+          id,
+          name,
+          description,
+          duration_minutes,
+          price,
+          category,
+          organization_id
+        `)
+        .eq('id', service_id)
+        .eq('organization_id', this.organizationId)
+        .single()
 
-    if (error) {
-      return { success: false, error: error.message }
+      if (error || !service) {
+        return { success: false, error: 'Servizio non trovato' }
+      }
+
+      return {
+        success: true,
+        data: {
+          id: service.id,
+          name: service.name,
+          description: service.description,
+          duration: service.duration_minutes,
+          price: service.price,
+          category: service.category
+        }
+      }
+    } catch (error) {
+      console.error('Error getting service info:', error)
+      return { success: false, error: 'Errore nel recupero informazioni servizio' }
     }
+  }
 
-    return {
-      success: true,
-      data: { service }
+  private async collectFeedback(args: any): Promise<FunctionResponse> {
+    const supabase = await createClient()
+    
+    try {
+      const { client_phone, service_id, booking_id, rating, comment, category = 'overall' } = args
+      
+      // Validate rating
+      if (rating < 1 || rating > 5) {
+        return { success: false, error: 'La valutazione deve essere tra 1 e 5' }
+      }
+
+      // Find client
+      let { data: client } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('organization_id', this.organizationId)
+        .eq('phone', client_phone)
+        .single()
+
+      if (!client) {
+        // Create new client if not exists
+        const { data: newClient } = await supabase
+          .from('clients')
+          .insert({
+            organization_id: this.organizationId,
+            phone: client_phone,
+            whatsapp_phone: client_phone,
+            full_name: `Cliente WhatsApp (${client_phone})`,
+          })
+          .select('id')
+          .single()
+        
+        if (!newClient) {
+          return { success: false, error: 'Errore nella creazione cliente' }
+        }
+        
+        client = newClient
+      }
+
+      // Create feedback record
+      const { data: feedback, error } = await supabase
+        .from('feedback')
+        .insert({
+          organization_id: this.organizationId,
+          client_id: client.id,
+          service_id: service_id || null,
+          booking_id: booking_id || null,
+          rating,
+          comment: comment || null,
+          category,
+          source: 'whatsapp',
+          created_at: new Date().toISOString()
+        })
+        .select('id, rating, comment, category')
+        .single()
+
+      if (error) {
+        console.error('Error creating feedback:', error)
+        return { success: false, error: 'Errore nel salvataggio feedback' }
+      }
+
+      // Send thank you message based on rating
+      let thankYouMessage = ''
+      if (rating >= 4) {
+        thankYouMessage = 'Grazie mille per il tuo feedback positivo! 🌟 Siamo felici che tu sia soddisfatto del nostro servizio. Ti aspettiamo per il prossimo appuntamento!'
+      } else if (rating >= 3) {
+        thankYouMessage = 'Grazie per il tuo feedback! 👍 Stiamo sempre lavorando per migliorare i nostri servizi. Speriamo di vederti presto!'
+      } else {
+        thankYouMessage = 'Grazie per il tuo feedback onesto. 😔 Ci dispiace che la tua esperienza non sia stata all\'altezza delle aspettative. Il nostro team controllerà il tuo commento per migliorare i nostri servizi.'
+      }
+
+      return {
+        success: true,
+        data: {
+          feedback_id: feedback.id,
+          rating: feedback.rating,
+          category: feedback.category,
+          thank_you_message: thankYouMessage
+        }
+      }
+    } catch (error) {
+      console.error('Error collecting feedback:', error)
+      return { success: false, error: 'Errore nella raccolta feedback' }
     }
   }
 

@@ -8,10 +8,10 @@ const notificationConfig = {
     templateId: process.env.EMAILJS_TEMPLATE_ID || '',
     publicKey: process.env.EMAILJS_PUBLIC_KEY || ''
   },
-  twilio: process.env.TWILIO_ACCOUNT_SID ? {
-    accountSid: process.env.TWILIO_ACCOUNT_SID,
-    authToken: process.env.TWILIO_AUTH_TOKEN || '',
-    phoneNumber: process.env.TWILIO_PHONE_NUMBER || ''
+  twilio: (process.env.TWILIO_ACCOUNT_SID || process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID) ? {
+    accountSid: process.env.TWILIO_ACCOUNT_SID || process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID || '',
+    authToken: process.env.TWILIO_AUTH_TOKEN || process.env.NEXT_PUBLIC_TWILIO_AUTH_TOKEN || '',
+    phoneNumber: process.env.TWILIO_PHONE_NUMBER || process.env.NEXT_PUBLIC_TWILIO_SMS_NUMBER || ''
   } : undefined
 }
 

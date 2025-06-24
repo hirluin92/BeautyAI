@@ -1,41 +1,31 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { ClientInsert } from '@/types'
+import type { NextRequest } from 'next/server'
+import { rateLimitManager, rateLimitResponse } from '@/lib/rate-limit'
+import { clientSchema } from '@/lib/validation/client'
+import { requireAuth } from '@/lib/supabase/requireAuth'
 
-// GET all clients
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    // Rate limiting
+    const result = await rateLimitManager.checkRateLimit(
+      request,
+      'dashboard',
+      '/api/clients'
+    )
+    
+    if (!result.success) {
+      return rateLimitResponse(result.retryAfter)
+    }
+
+    const { userData, supabase } = await requireAuth()
+    // Get URL parameters
     const { searchParams } = new URL(request.url)
-    const search = searchParams.get('search') || ''
     const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
-    const tags = searchParams.get('tags')?.split(',').filter(Boolean) || []
-    
-    const supabase = await createClient()
-    
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Non autorizzato' },
-        { status: 401 }
-      )
-    }
-
-    // Get user's organization
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
-
-    if (userError || !userData) {
-      return NextResponse.json(
-        { error: 'Utente non trovato' },
-        { status: 404 }
-      )
-    }
+    const limit = parseInt(searchParams.get('limit') || '10')
+    const search = searchParams.get('search') || ''
+    const sortBy = searchParams.get('sortBy') || 'created_at'
+    const sortOrder = searchParams.get('sortOrder') || 'desc'
 
     // Calculate offset
     const offset = (page - 1) * limit
@@ -44,34 +34,32 @@ export async function GET(request: Request) {
     let query = supabase
       .from('clients')
       .select('*', { count: 'exact' })
-      .eq('organization_id', userData.organization_id)
-      .not('full_name', 'like', '[ELIMINATO]%') // Exclude soft-deleted clients
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1)
+      .eq('organization_id', userData.organization.id)
 
-    // Apply search filter
+    // Add search filter if provided
     if (search) {
-      query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`)
+      query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`)
     }
 
-    // Apply tags filter
-    if (tags.length > 0) {
-      query = query.overlaps('tags', tags)
-    }
+    // Add sorting
+    query = query.order(sortBy, { ascending: sortOrder === 'asc' })
 
-    const { data: clients, error: clientsError, count } = await query
+    // Add pagination
+    query = query.range(offset, offset + limit - 1)
 
-    if (clientsError) {
+    const { data: clients, error, count } = await query
+
+    if (error) {
+      console.error('Error fetching clients:', error)
       return NextResponse.json(
-        { error: 'Errore nel recupero dei clienti' },
+        { error: 'Failed to fetch clients' },
         { status: 500 }
       )
     }
 
     return NextResponse.json({
-      success: true,
-      data: clients,
-      meta: {
+      clients,
+      pagination: {
         page,
         limit,
         total: count || 0,
@@ -80,130 +68,87 @@ export async function GET(request: Request) {
     })
 
   } catch (error) {
-    console.error('Error fetching clients:', error)
+    console.error('Error in clients GET:', error)
     return NextResponse.json(
-      { error: 'Errore interno del server' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
 }
 
-// POST create new client
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Rate limiting - più restrittivo per creazione
+    const result = await rateLimitManager.checkRateLimit(
+      request,
+      'dashboard',
+      '/api/clients'
+    )
+    
+    if (!result.success) {
+      return rateLimitResponse(result.retryAfter)
+    }
+
+    const { userData, supabase } = await requireAuth()
     const body = await request.json()
-    const supabase = await createClient()
-    
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Non autorizzato' },
-        { status: 401 }
-      )
-    }
 
-    // Get user's organization
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('organization_id')
-      .eq('id', user.id)
-      .single()
+    console.log('👥 Creating client for organization:', userData.organization.name)
 
-    if (userError || !userData) {
+    // Validazione Zod
+    const parseResult = clientSchema.safeParse(body)
+    if (!parseResult.success) {
       return NextResponse.json(
-        { error: 'Utente non trovato' },
-        { status: 404 }
-      )
-    }
-
-    // Validate required fields
-    if (!body.full_name || !body.phone) {
-      return NextResponse.json(
-        { error: 'Nome e telefono sono obbligatori' },
+        { error: 'Dati non validi', details: parseResult.error.flatten() },
         { status: 400 }
       )
     }
+    const validData = parseResult.data
 
-    // Check if phone already exists for this organization
-    const { data: existingClient, error: checkError } = await supabase
+    // Check if client with same phone already exists
+    const { data: existingClient } = await supabase
       .from('clients')
       .select('id')
-      .eq('organization_id', userData.organization_id)
-      .eq('phone', body.phone.trim())
-      .not('full_name', 'like', '[ELIMINATO]%')
+      .eq('organization_id', userData.organization.id)
+      .eq('phone', validData.phone)
       .single()
-
-    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
-      return NextResponse.json(
-        { error: 'Errore nel controllo duplicati' },
-        { status: 500 }
-      )
-    }
 
     if (existingClient) {
       return NextResponse.json(
-        { error: 'Esiste già un cliente con questo numero di telefono' },
-        { status: 400 }
+        { error: 'Un cliente con questo numero di telefono esiste già' },
+        { status: 409 }
       )
     }
 
     // Create client
-    const clientData: ClientInsert = {
-      organization_id: userData.organization_id,
-      full_name: body.full_name.trim(),
-      phone: body.phone.trim(),
-      email: body.email?.trim() || null,
-      whatsapp_phone: body.whatsapp_phone?.trim() || null,
-      birth_date: body.birth_date || null,
-      notes: body.notes?.trim() || null,
-      tags: body.tags && body.tags.length > 0 ? body.tags : null
-    }
-
-    const { data: client, error: insertError } = await supabase
+    const { data: client, error } = await supabase
       .from('clients')
-      .insert(clientData)
+      .insert({
+        organization_id: userData.organization.id,
+        full_name: validData.full_name,
+        phone: validData.phone,
+        email: validData.email || null,
+        whatsapp_phone: validData.whatsapp_phone || validData.phone,
+        birth_date: validData.birth_date || null,
+        notes: validData.notes || null,
+        tags: validData.tags || []
+      })
       .select()
       .single()
 
-    if (insertError) {
+    if (error) {
+      console.error('Error creating client:', error)
       return NextResponse.json(
-        { error: 'Errore durante la creazione del cliente' },
+        { error: 'Failed to create client' },
         { status: 500 }
       )
     }
 
-    // Update organization client count
-    await supabase
-      .from('organizations')
-      .update({ 
-        client_count: supabase.rpc('increment_client_count')
-      })
-      .eq('id', userData.organization_id)
-
-    // Log the creation for analytics
-    await supabase.from('analytics_events').insert({
-      organization_id: userData.organization_id,
-      event_type: 'client_created',
-      event_data: {
-        client_id: client.id,
-        client_name: client.full_name,
-        created_by: user.id
-      },
-      user_id: user.id
-    })
-
-    return NextResponse.json({
-      success: true,
-      data: client,
-      message: 'Cliente creato con successo'
-    }, { status: 201 })
+    return NextResponse.json(client, { status: 201 })
 
   } catch (error) {
-    console.error('Error creating client:', error)
+    console.error('Error in clients POST:', error)
     return NextResponse.json(
-      { error: 'Errore interno del server' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

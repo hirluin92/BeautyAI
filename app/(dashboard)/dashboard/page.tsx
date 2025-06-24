@@ -1,209 +1,124 @@
-// app/(dashboard)/dashboard/page.tsx
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+// app/(dashboard)/dashboard/page.tsx - VERSIONE SEMPLIFICATA
+import { requireAuth } from '@/lib/supabase/requireAuth'
 import Link from 'next/link'
-import { BarChart3, Calendar, Clock, DollarSign, Package, Users, Settings, MessageSquare, LogOut } from 'lucide-react'
+import { Calendar } from 'lucide-react'
 import DashboardStatsClient from './DashboardStatsClient'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-  
-  // Get authenticated user
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  
-  console.log('=== AUTH DEBUG ===')
-  console.log('Auth user:', user)
-  console.log('Auth error:', authError)
-  
-  if (authError || !user) {
-    redirect('/login')
-  }
+  // ✅ USA requireAuth STANDARDIZZATO
+  const { user, userData, supabase } = await requireAuth()
 
-  // Debug: prova query semplice prima
-  console.log('=== SIMPLE QUERY DEBUG ===')
-  console.log('User ID being queried:', user.id)
-  
-  const { data: simpleUserData, error: simpleError } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
-  console.log('Simple query result:', simpleUserData)
-  console.log('Simple query error:', simpleError)
-
-  // Debug: prova query senza join
-  const { data: userOnlyData, error: userOnlyError } = await supabase
-    .from('users')
-    .select('id, email, full_name, organization_id, role')
-    .eq('id', user.id)
-    .single()
-
-  console.log('User only query result:', userOnlyData)
-  console.log('User only query error:', userOnlyError)
-
-  // Get user data con join
-  console.log('=== FULL QUERY DEBUG ===')
-  const { data: userData, error: userError } = await supabase
-    .from('users')
-    .select('*, organization:organizations(*)')
-    .eq('id', user.id)
-    .single()
-
-  console.log('Full query result:', userData)
-  console.log('Full query error:', userError)
-
-  // Debug: prova a vedere tutti gli utenti (per capire se è un problema di ID)
-  const { data: allUsers, error: allUsersError } = await supabase
-    .from('users')
-    .select('id, email')
-    .limit(5)
-
-  console.log('=== ALL USERS DEBUG ===')
-  console.log('All users:', allUsers)
-  console.log('All users error:', allUsersError)
-
-  if (userError || !userData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-white p-8 rounded shadow max-w-md w-full">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Errore di Accesso</h2>
-          <p className="text-gray-600 mb-4">Il tuo profilo utente non è stato trovato o non è completo. Contatta l'assistenza.</p>
-          <div className="bg-gray-100 p-4 rounded mb-4 text-xs">
-            <p><strong>Debug Info:</strong></p>
-            <p>Auth User ID: {user?.id || 'N/A'}</p>
-            <p>Auth Email: {user?.email || 'N/A'}</p>
-            <p>Error: {userError?.message || 'Unknown error'}</p>
-            <p>Simple Query Result: {JSON.stringify(simpleUserData)}</p>
-            <p>Simple Query Error: {simpleError?.message || 'None'}</p>
-          </div>
-          <form action="/api/auth/logout" method="POST" className="text-center">
-            <button type="submit" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Esci</button>
-          </form>
-        </div>
-      </div>
-    )
-  }
-
-  if (!userData.organization_id) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-white p-8 rounded shadow max-w-md w-full">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Organizzazione mancante</h2>
-          <p className="text-gray-600 mb-4">Il tuo profilo non è associato a nessuna organizzazione. Contatta l'assistenza.</p>
-          <form action="/api/auth/logout" method="POST" className="text-center">
-            <button type="submit" className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Esci</button>
-          </form>
-        </div>
-      </div>
-    )
-  }
-
-  // Per tutte le query che usano organization_id, uso userData.organization_id || ''
-  const orgId = userData.organization_id || '';
-
-  // Ora recupera l'organizzazione
-  const { data: organization } = await supabase
-    .from('organizations')
-    .select('*')
-    .eq('id', orgId)
-    .single()
-
-  // Calcolo intervalli di oggi e mese
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-  const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-
-  // Appuntamenti di oggi
-  const { data: bookingsToday } = await supabase
-    .from('bookings')
-    .select('*, client:clients(*), service:services(*), staff:users!bookings_staff_id_fkey(id, full_name)')
-    .eq('organization_id', orgId)
-    .gte('start_at', today.toISOString())
-    .lt('start_at', tomorrow.toISOString());
-
-  const bookingsTodayArr = Array.isArray(bookingsToday) ? bookingsToday : [];
-  // Raggruppo bookingsTodayArr per cliente, includendo i servizi prenotati oggi
-  const clientsMap = new Map<string, { id: string; full_name: string; phone?: string; services: { name: string; start_at: string; staff_name?: string }[] }>();
-  for (const b of bookingsTodayArr) {
-    if (!b.client || !b.client.id) continue;
-    const clientId = b.client.id;
-    if (!clientsMap.has(clientId)) {
-      clientsMap.set(clientId, {
-        id: b.client.id,
-        full_name: b.client.full_name,
-        phone: b.client.phone,
-        services: [],
-      });
-    }
-    clientsMap.get(clientId)!.services.push({
-      name: b.service?.name || 'Servizio',
-      start_at: b.start_at,
-      staff_name: b.staff?.full_name || undefined,
-    });
-  }
-  const clientsToday = Array.from(clientsMap.values());
-
-  // Incasso previsto di oggi (tutti tranne cancellati)
-  const incassoOggi = bookingsTodayArr
-    .filter(b => b.status !== 'cancelled')
-    .reduce((sum, b) => {
-      const prezzo = b.price ?? b.service?.price ?? 0;
-      return sum + prezzo;
-    }, 0);
-
-  // Incasso mensile (tutti tranne cancellati)
-  const { data: bookingsMonth } = await supabase
-    .from('bookings')
-    .select('price, status, service:services(price)')
-    .eq('organization_id', orgId)
-    .gte('start_at', monthStart.toISOString())
-    .lt('start_at', monthEnd.toISOString());
-  const incassoMese = (bookingsMonth || [])
-    .filter(b => b.status !== 'cancelled')
-    .reduce((sum, b) => {
-      const prezzo = b.price ?? b.service?.price ?? 0;
-      return sum + prezzo;
-    }, 0);
-
-  // Stato per modale (solo in componente client, qui solo markup)
-  // ...
+  console.log('✅ Dashboard loaded for:', userData.full_name)
+  console.log('🏢 Organization:', userData.organization.name)
 
   return (
-    <>
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Ciao {userData.full_name}!</h1>
-        <p className="text-gray-600 mt-2">Ecco il riepilogo della tua attività di oggi</p>
-      </div>
-      <DashboardStatsClient
-        clientsToday={clientsToday}
-        bookingsTodayCount={bookingsTodayArr.length}
-        incassoOggi={incassoOggi}
-        incassoMese={incassoMese}
-      />
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow p-6 mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Azioni Rapide</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link href="/clients/new" className="flex items-center justify-center px-4 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
-            <Users className="h-5 w-5 mr-2" />
-            Nuovo Cliente
-          </Link>
-          <Link href="/services/new" className="flex items-center justify-center px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition">
-            <Package className="h-5 w-5 mr-2" />
-            Nuovo Servizio
-          </Link>
-          <Link href="/calendar" className="flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
-            <Calendar className="h-5 w-5 mr-2" />
-            Prenota Appuntamento
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Benvenuto, {userData.full_name}! Ecco un riepilogo della tua attività.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Link
+            href="/bookings/new"
+            className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors flex items-center"
+          >
+            <Calendar className="w-4 h-4 mr-2" />
+            Nuova Prenotazione
           </Link>
         </div>
       </div>
-    </>
+
+      {/* Quick Actions */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="p-6">
+          <div className="flex items-center space-x-4">
+            <Calendar className="h-10 w-10 text-indigo-600" />
+            <div>
+              <h3 className="font-semibold">Calendario</h3>
+              <p className="text-sm text-muted-foreground">Visualizza e gestisci appuntamenti</p>
+            </div>
+          </div>
+          <Link 
+            href="/calendar" 
+            className="block mt-4 text-center bg-indigo-50 text-indigo-700 py-2 rounded-md hover:bg-indigo-100 transition-colors"
+          >
+            Apri Calendario
+          </Link>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center space-x-4">
+            <svg className="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+            </svg>
+            <div>
+              <h3 className="font-semibold">Clienti</h3>
+              <p className="text-sm text-muted-foreground">Gestisci la tua base clienti</p>
+            </div>
+          </div>
+          <Link 
+            href="/clients" 
+            className="block mt-4 text-center bg-green-50 text-green-700 py-2 rounded-md hover:bg-green-100 transition-colors"
+          >
+            Gestisci Clienti
+          </Link>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center space-x-4">
+            <svg className="h-10 w-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            <div>
+              <h3 className="font-semibold">Servizi</h3>
+              <p className="text-sm text-muted-foreground">Configura i tuoi servizi</p>
+            </div>
+          </div>
+          <Link 
+            href="/services" 
+            className="block mt-4 text-center bg-purple-50 text-purple-700 py-2 rounded-md hover:bg-purple-100 transition-colors"
+          >
+            Gestisci Servizi
+          </Link>
+        </Card>
+      </div>
+
+      {/* Organization Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Informazioni Organizzazione</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <p className="text-sm text-muted-foreground">Nome</p>
+              <p className="font-medium">{userData.organization.name}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Piano</p>
+              <p className="font-medium capitalize">{userData.organization.plan_type}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Il tuo ruolo</p>
+              <p className="font-medium capitalize">{userData.role}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Stato account</p>
+              <span className="inline-block px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Attivo
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Dynamic Stats Component - TUTTA LA LOGICA STATISTICA QUI */}
+      <DashboardStatsClient organizationId={userData.organization_id} />
+    </div>
   )
 }

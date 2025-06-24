@@ -19,6 +19,7 @@
     "test:ai:availability": "node scripts/test-ai.js availability",
     "test:ai:cancellation": "node scripts/test-ai.js cancellation",
     "test:ai:client": "node scripts/test-ai.js client",
+    "test:rate-limit": "node scripts/test-rate-limit.js",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
     "e2e:debug": "playwright test --debug",
@@ -38,6 +39,7 @@
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-tabs": "^1.1.12",
     "@radix-ui/react-toast": "^1.1.5",
+    "@sentry/nextjs": "^9.30.0",
     "@stripe/stripe-js": "^7.3.1",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.50.0",
@@ -50,14 +52,15 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-draggable": "^4.4.6",
-    "react-hook-form": "^7.57.0",
+    "react-hook-form": "^7.58.1",
     "recharts": "^2.15.3",
     "sonner": "^1.7.4",
     "stripe": "^18.2.1",
+    "swr": "^2.3.3",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "twilio": "^5.7.1",
-    "zod": "^3.25.57"
+    "zod": "^3.25.67"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

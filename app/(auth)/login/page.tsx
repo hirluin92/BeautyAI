@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 
 function LoginForm() {
   const [email, setEmail] = useState('')
@@ -12,7 +11,6 @@ function LoginForm() {
   const [success, setSuccess] = useState<string | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const supabase = createClient()
 
   useEffect(() => {
     if (searchParams.get('registered') === 'true') {
@@ -27,26 +25,19 @@ function LoginForm() {
     setSuccess(null)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
       })
-
-      if (error) {
-        if (error.message?.toLowerCase().includes('email not confirmed') || error.message?.toLowerCase().includes('email_not_confirmed')) {
-          setError('Devi prima confermare il tuo account tramite il link che ti abbiamo inviato via email.')
-        } else {
-          setError(error.message || 'Errore durante il login')
-        }
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Errore durante il login')
         return
       }
-
-      // Recupera l'URL di destinazione dai parametri di ricerca
+      // Login ok: usa window.location per forzare un vero redirect HTTP
       const redirectTo = searchParams.get('redirectedFrom') || '/dashboard'
-      
-      // Redirect alla pagina di destinazione
-      router.push(redirectTo)
-      router.refresh() // Importante per aggiornare il server component
+      window.location.href = redirectTo
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Errore sconosciuto'
       setError(errorMessage)

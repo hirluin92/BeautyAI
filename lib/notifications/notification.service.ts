@@ -3,6 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 import { format, addDays, startOfDay, endOfDay } from 'date-fns'
 import { it } from 'date-fns/locale'
 
+// Bypass SSL verification in development
+if (process.env.NODE_ENV === 'development') {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+}
+
 export interface NotificationConfig {
   emailjs: {
     serviceId: string
@@ -44,17 +49,21 @@ export class NotificationService {
 
   constructor(config: NotificationConfig) {
     this.config = config
-    this.initializeSupabase()
-  }
-
-  private async initializeSupabase() {
-    this.supabase = await createClient()
+    this.supabase = createClient();
   }
 
   /**
    * Invia notifica basata sul tipo e preferenze del cliente
    */
   async sendNotification(type: NotificationType, data: NotificationData) {
+    console.log('🚀 Starting notification send:', {
+      type,
+      hasEmail: !!data.clientEmail,
+      hasPhone: !!data.clientPhone,
+      preferences: data.notificationPreferences,
+      twilioConfig: !!this.config.twilio
+    })
+
     const results = {
       email: { sent: false, error: null as string | null },
       sms: { sent: false, error: null as string | null },
@@ -65,9 +74,12 @@ export class NotificationService {
       // Email notification
       if (data.notificationPreferences.email && data.clientEmail) {
         try {
+          console.log('📧 Sending email notification...')
           await this.sendEmailNotification(type, data)
           results.email.sent = true
+          console.log('✅ Email sent successfully')
         } catch (error: any) {
+          console.error('❌ Email error:', error.message)
           results.email.error = error.message
         }
       }
@@ -75,19 +87,31 @@ export class NotificationService {
       // SMS notification
       if (data.notificationPreferences.sms && data.clientPhone && this.config.twilio) {
         try {
+          console.log('📱 Sending SMS notification...')
           await this.sendSMSNotification(type, data)
           results.sms.sent = true
+          console.log('✅ SMS sent successfully')
         } catch (error: any) {
+          console.error('❌ SMS error:', error.message)
           results.sms.error = error.message
         }
+      } else {
+        console.log('⚠️ SMS skipped:', {
+          hasSmsPreference: data.notificationPreferences.sms,
+          hasPhone: !!data.clientPhone,
+          hasTwilio: !!this.config.twilio
+        })
       }
 
       // WhatsApp notification
       if (data.notificationPreferences.whatsapp && data.clientPhone) {
         try {
+          console.log('💬 Sending WhatsApp notification...')
           await this.sendWhatsAppNotification(type, data)
           results.whatsapp.sent = true
+          console.log('✅ WhatsApp sent successfully')
         } catch (error: any) {
+          console.error('❌ WhatsApp error:', error.message)
           results.whatsapp.error = error.message
         }
       }
@@ -98,9 +122,10 @@ export class NotificationService {
       // Update booking notification status
       await this.updateBookingNotificationStatus(data.bookingId, type)
 
+      console.log('📊 Final results:', results)
       return results
     } catch (error) {
-      console.error('Error sending notifications:', error)
+      console.error('💥 Error sending notifications:', error)
       throw error
     }
   }
@@ -147,12 +172,25 @@ export class NotificationService {
    * Invia SMS usando Twilio
    */
   private async sendSMSNotification(type: NotificationType, data: NotificationData) {
+    console.log('🔍 SMS Notification Debug:', {
+      hasTwilioConfig: !!this.config.twilio,
+      twilioConfig: this.config.twilio,
+      clientPhone: data.clientPhone,
+      notificationPreferences: data.notificationPreferences
+    })
+
     if (!this.config.twilio) {
       throw new Error('Twilio configuration missing')
     }
 
     const message = this.getSMSMessage(type, data)
     const to = this.formatPhoneNumber(data.clientPhone!)
+
+    console.log('📱 SMS Details:', {
+      message,
+      to,
+      from: this.config.twilio.phoneNumber
+    })
 
     const auth = Buffer.from(
       `${this.config.twilio.accountSid}:${this.config.twilio.authToken}`
@@ -174,11 +212,16 @@ export class NotificationService {
       }
     )
 
+    console.log('📡 Twilio Response Status:', response.status)
+
     if (!response.ok) {
       const error = await response.json()
+      console.error('❌ Twilio Error:', error)
       throw new Error(`Twilio error: ${error.message}`)
     }
 
+    const result = await response.json()
+    console.log('✅ SMS Sent Successfully:', result.sid)
     return response
   }
 
@@ -412,10 +455,12 @@ export class NotificationService {
     const { data: bookings } = await this.supabase
       .from('bookings')
       .select(`
-        *,
-        client:clients(*),
-        service:services(*),
-        staff:users!bookings_staff_id_fkey(*)
+        id,
+        start_at,
+        end_at,
+        client:clients(id, full_name),
+        service:services(id, name, duration_minutes),
+        staff:staff(*)
       `)
       .eq('status', 'confirmed')
       .gte('start_at', startOfDay(targetTime).toISOString())

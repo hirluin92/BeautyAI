@@ -15,9 +15,12 @@ interface ExtendedService extends Omit<Service, 'deleted_at'> {
 
 interface ServicesTableProps {
   services: ExtendedService[]
+  currentPage: number
+  totalPages: number
+  totalCount: number
 }
 
-export default function ServicesTable({ services }: ServicesTableProps) {
+export default function ServicesTable({ services, currentPage, totalPages, totalCount }: ServicesTableProps) {
   const router = useRouter()
   const supabase = createClient()
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
@@ -228,6 +231,30 @@ export default function ServicesTable({ services }: ServicesTableProps) {
         message={`Sei sicuro di voler eliminare il servizio "${serviceToDelete?.name}"? Questa azione non può essere annullata.`}
         isLoading={isDeleting}
       />
+
+      {/* Paginazione */}
+      <div className="flex justify-between items-center mt-4">
+        <span className="text-sm text-gray-600">
+          Mostrati {services.length} di {totalCount} servizi
+        </span>
+        <div className="flex gap-2">
+          <button
+            disabled={currentPage === 1}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+          >
+            &lt;
+          </button>
+          <span className="text-sm">Pagina {currentPage} di {totalPages}</span>
+          <button
+            disabled={currentPage === totalPages}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="px-3 py-1 border rounded disabled:opacity-50"
+          >
+            &gt;
+          </button>
+        </div>
+      </div>
     </>
   )
 }

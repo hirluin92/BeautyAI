@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Plus, Menu } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Menu, Filter } from 'lucide-react'
 import { 
   format, 
   startOfWeek, 
@@ -567,6 +567,34 @@ function useIsMobile() {
   return isMobile
 }
 
+// Hook per gestire l'utente loggato
+function useCurrentUser() {
+  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const supabase = createClient()
+
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser()
+        if (error) {
+          console.error('Error getting current user:', error)
+        } else {
+          setCurrentUser(user)
+        }
+      } catch (error) {
+        console.error('Error in getCurrentUser:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    getCurrentUser()
+  }, [supabase])
+
+  return { currentUser, loading }
+}
+
 // Main CalendarView component
 export default function CalendarView({ 
   bookings, 
@@ -586,6 +614,32 @@ export default function CalendarView({
   const [selectedStaff, setSelectedStaff] = useState<string>('')
   const [showFilters, setShowFilters] = useState(false)
   const dayRefs = useRef<{ [key: string]: React.RefObject<HTMLDivElement | null> }>({})
+  const { currentUser, loading: userLoading } = useCurrentUser()
+  
+  // Stato per il filtro "Tutte / Solo le mie"
+  const [showOnlyMyBookings, setShowOnlyMyBookings] = useState(false)
+  
+  // Filtra le prenotazioni in base al filtro
+  const filteredBookings = useMemo(() => {
+    let filtered = bookings
+    
+    // Filtro per "Solo le mie" prenotazioni
+    if (showOnlyMyBookings && currentUser) {
+      filtered = filtered.filter(booking => {
+        return booking.staff?.id === currentUser.id
+      })
+    }
+    
+    // Filtri esistenti per servizio e staff
+    if (selectedService) {
+      filtered = filtered.filter(booking => booking.service.id === selectedService)
+    }
+    if (selectedStaff) {
+      filtered = filtered.filter(booking => booking.staff?.id === selectedStaff)
+    }
+    
+    return filtered
+  }, [bookings, showOnlyMyBookings, currentUser, selectedService, selectedStaff])
 
   // Safe arrays
   const safeServices = Array.isArray(services) ? services : []
@@ -603,15 +657,6 @@ export default function CalendarView({
   const monthDays = eachDayOfInterval({ start: monthStartWeek, end: monthEndWeek })
 
   const workingHours = Array.from({ length: 10 }, (_, i) => i + 9)
-
-  // Filter bookings
-  const filteredBookings = useMemo(() => {
-    return bookings.filter(booking => {
-      if (selectedService && booking.service.id !== selectedService) return false
-      if (selectedStaff && booking.staff?.id !== selectedStaff) return false
-      return true
-    })
-  }, [bookings, selectedService, selectedStaff])
 
   // Group bookings by day
   const bookingsByDay = useMemo(() => {
@@ -869,6 +914,37 @@ export default function CalendarView({
           </button>
         </div>
         <div className="space-y-4">
+          {/* Filtro "Tutte / Solo le mie" */}
+          {!userLoading && currentUser && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Prenotazioni
+              </label>
+              <div className="flex bg-gray-100 rounded-md p-1">
+                <button
+                  onClick={() => setShowOnlyMyBookings(false)}
+                  className={`flex-1 py-2 px-3 text-sm rounded ${
+                    !showOnlyMyBookings 
+                      ? 'bg-white shadow text-gray-900' 
+                      : 'text-gray-600'
+                  }`}
+                >
+                  Tutte
+                </button>
+                <button
+                  onClick={() => setShowOnlyMyBookings(true)}
+                  className={`flex-1 py-2 px-3 text-sm rounded ${
+                    showOnlyMyBookings 
+                      ? 'bg-white shadow text-gray-900' 
+                      : 'text-gray-600'
+                  }`}
+                >
+                  Solo le mie
+                </button>
+              </div>
+            </div>
+          )}
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Servizio
@@ -913,7 +989,12 @@ export default function CalendarView({
       }} aria-label="Menu" className="p-2 rounded-full hover:bg-indigo-100 transition-colors">
         <svg className="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
       </button>
-      <h1 className="text-xl font-bold tracking-tight text-indigo-500" style={{ fontFamily: 'Poppins, Inter, sans-serif' }}>Calendario</h1>
+      <div className="flex flex-col items-center">
+        <h1 className="text-xl font-bold tracking-tight text-indigo-500" style={{ fontFamily: 'Poppins, Inter, sans-serif' }}>Calendario</h1>
+        {showOnlyMyBookings && currentUser && (
+          <span className="text-xs text-pink-600 font-medium">Solo le mie prenotazioni</span>
+        )}
+      </div>
       <div className="flex items-center gap-2">
         <button onClick={() => setShowFilters(true)} aria-label="Filtri" className="p-2 rounded-full hover:bg-pink-100 transition-colors">
           <svg className="w-6 h-6 text-pink-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-7.414 7.414A1 1 0 0013 15.414V19a1 1 0 01-1 1h-2a1 1 0 01-1-1v-3.586a1 1 0 00-.293-.707L3.293 6.707A1 1 0 013 6V4z" /></svg>
@@ -957,31 +1038,58 @@ export default function CalendarView({
             <ChevronRight className="w-5 h-5" />
           </button>
             </div>
-        </div>
-        
-          <div className="flex items-center space-x-3">
-              <select
-                value={selectedService}
-                onChange={(e) => setSelectedService(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-              >
-                <option value="">Tutti i servizi</option>
-                {safeServices.map(service => (
-                <option key={service.id} value={service.id}>{service.name}</option>
-                ))}
-              </select>
-              
-              <select
-                value={selectedStaff}
-                onChange={(e) => setSelectedStaff(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
-              >
-              <option value="">Tutto lo staff</option>
-                {safeStaff.map(member => (
-                <option key={member.id} value={member.id}>{member.full_name}</option>
-                ))}
-              </select>
+          </div>
           
+          <div className="flex items-center space-x-3">
+            {/* Filtro "Tutte / Solo le mie" */}
+            {!userLoading && currentUser && (
+              <div className="flex items-center space-x-2 bg-gray-100 rounded-md px-3 py-1">
+                <span className="text-sm font-medium text-gray-700">Prenotazioni:</span>
+                <button
+                  onClick={() => setShowOnlyMyBookings(false)}
+                  className={`px-2 py-1 text-xs rounded ${
+                    !showOnlyMyBookings 
+                      ? 'bg-white shadow text-gray-900' 
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Tutte
+                </button>
+                <button
+                  onClick={() => setShowOnlyMyBookings(true)}
+                  className={`px-2 py-1 text-xs rounded ${
+                    showOnlyMyBookings 
+                      ? 'bg-white shadow text-gray-900' 
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Solo le mie
+                </button>
+              </div>
+            )}
+            
+            <select
+              value={selectedService}
+              onChange={(e) => setSelectedService(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="">Tutti i servizi</option>
+              {safeServices.map(service => (
+                <option key={service.id} value={service.id}>{service.name}</option>
+              ))}
+            </select>
+            
+            <select
+              value={selectedStaff}
+              onChange={(e) => setSelectedStaff(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+            >
+              <option value="">Tutto lo staff</option>
+              {safeStaff.map(member => (
+                <option key={member.id} value={member.id}>{member.full_name}</option>
+              ))}
+            </select>
+        
             <div className="flex items-center bg-gray-100 rounded-md">
               <button
                 onClick={() => onChangeView('day')}
@@ -1002,9 +1110,9 @@ export default function CalendarView({
                 Mese
               </button>
             </div>
+          </div>
         </div>
-                      </div>
-                    )}
+      )}
       {/* Filtri drawer mobile luxury */}
       {isMobile && <FiltersDrawer />}
       {/* Calendar Content luxury */}
