@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@200;300;400&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -14,13 +15,6 @@
   --border: #e2e8f0;
   --input: #e2e8f0;
   --ring: #3b82f6;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -41,8 +35,209 @@
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* === Font di default === */
+html, body, .font-sans {
+  font-family: 'DM Sans', Arial, Helvetica, sans-serif;
+  font-weight: 300;
 }
+
+/* === Sfondo chiaro per l'applicazione === */
+/* body {
+  background: #f8fafc !important; 
+  color: #1e293b;
+} */
+
+/* === Sfondo radiale e sfumato stile Canva (più luminoso) === */
+body {
+  background: linear-gradient(to bottom,
+    rgba(6,182,212,0.35) 0%,      /* Ciano più visibile */
+    rgba(8,145,178,0.22) 3%,      /* Ciano/Teal */
+    rgba(14,116,144,0.15) 7%,     /* Ciano scuro */
+    rgba(21,94,117,0.10) 12%,     /* Blu-ciano scuro */
+    rgba(22,78,99,0.07) 18%,      /* Blu molto scuro */
+    rgba(15,23,42,0.04) 26%,      /* Quasi nero */
+    #000 38%,                     /* Nero puro inizia gradualmente */
+    #000 100%                     /* Nero puro */
+  );
+  background-color: #000;
+}
+/* === Fine sfondo radiale Canva === */
+
+/* === Beauty AI Dashboard Animations === */
+
+@keyframes rainbowShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.animate-rainbowShift {
+  animation: rainbowShift 4s ease-in-out infinite;
+  background-size: 600% 600%;
+}
+
+@keyframes underlineGlow {
+  0%, 100% { width: 400px; opacity: 0.8; box-shadow: 0 0 20px rgba(0,212,255,0.5); }
+  50% { width: 600px; opacity: 1; box-shadow: 0 0 40px rgba(0,212,255,0.8); }
+}
+.animate-underlineGlow {
+  animation: underlineGlow 2.5s ease-in-out infinite;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-fadeInUp {
+  animation: fadeInUp 1.2s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+/* === Fine Animazioni Dashboard === */
+
+/* === Animazioni Header Beauty AI Dashboard === */
+
+@keyframes notificationPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239,68,68,0.7); }
+  50% { transform: scale(1.2); box-shadow: 0 0 0 10px rgba(239,68,68,0); }
+}
+.animate-notificationPulse {
+  animation: notificationPulse 1.5s infinite;
+}
+
+/* Glassmorphism gold per bottone "Diventa Leggenda" */
+.glassmorphism-gold {
+  background: linear-gradient(90deg, #fde047 0%, #fbbf24 40%, #ea580c 70%, #92400e 100%);
+  box-shadow: 0 4px 32px 0 rgba(251,191,36,0.15), 0 1.5px 8px 0 rgba(0,0,0,0.08);
+  border: none;
+  backdrop-filter: blur(12px);
+  color: #1a1a1a;
+}
+
+/* === Fine Animazioni Header === */
+
+/* === Glassmorphism per Quick Actions === */
+.glassmorphism-action-button {
+  @apply px-10 py-5 rounded-full text-white shadow-lg border border-white/20 backdrop-blur-[30px] bg-white/10 transition-all duration-300 hover:bg-white/20 hover:scale-105;
+  font-weight: 600;
+}
+/* === Fine Glassmorphism Quick Actions === */
+
+/* === Glassmorphism per Search Bar === */
+.glassmorphism-search {
+  @apply bg-white/10 backdrop-blur-[30px];
+}
+/* === Fine Glassmorphism Search Bar === */
+
+/* === Glassmorphism per Stat Cards === */
+.glassmorphism-stat-card {
+  @apply bg-white/10 backdrop-blur-[30px] border border-white/20 rounded-[30px] p-12 shadow-lg;
+}
+/* === Fine Glassmorphism Stat Cards === */
+
+/* === Animazione per icone stats === */
+@keyframes iconFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+.animate-iconFloat {
+  animation: iconFloat 2.5s ease-in-out infinite;
+}
+/* === Fine Animazione Icone === */
+
+/* === Glassmorphism per Feature Cards === */
+.glassmorphism-feature-card {
+  @apply bg-white/10 backdrop-blur-[30px] border border-white/20 rounded-[40px] p-10 shadow-lg;
+}
+/* === Fine Glassmorphism Feature Cards === */
+
+/* === Glassmorphism per Feature Buttons === */
+.glassmorphism-feature-btn {
+  @apply bg-white/10 border-2 border-white/20 transition-all duration-400;
+}
+/* === Fine Glassmorphism Feature Buttons === */
+
+/* === Glassmorphism per Activity Cards === */
+.glassmorphism-activity-card {
+  @apply bg-white/10 backdrop-blur-[30px] border border-white/20 rounded-[30px] p-8 shadow-lg transition-all duration-500 hover:scale-105 hover:-translate-y-2;
+}
+/* === Fine Glassmorphism Activity Cards === */
+
+/* === Badge Gradient per Activity Status === */
+.badge-gradient-green {
+  @apply bg-gradient-to-r from-green-400 to-emerald-500 text-black px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide;
+}
+.badge-gradient-blue {
+  @apply bg-gradient-to-r from-blue-400 to-cyan-500 text-black px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide;
+}
+.badge-gradient-pink {
+  @apply bg-gradient-to-r from-purple-400 to-pink-500 text-black px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide;
+}
+.badge-gradient-orange {
+  @apply bg-gradient-to-r from-orange-400 to-red-500 text-black px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide;
+}
+.badge-gradient-cyan {
+  @apply bg-gradient-to-r from-teal-400 to-cyan-500 text-black px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide;
+}
+/* === Fine Badge Gradient === */
+
+/* === Glassmorphism per Metric Cards === */
+.glassmorphism-metric-card {
+  @apply bg-white/10 backdrop-blur-[30px] border border-white/20 rounded-[40px] p-10 shadow-lg transition-all duration-500 hover:scale-105 hover:-translate-y-3;
+}
+/* === Fine Glassmorphism Metric Cards === */
+
+/* === Animazioni per Metriche === */
+@keyframes metricBar {
+  0% { width: 0; }
+  100% { width: 100%; }
+}
+.animate-metricBar {
+  animation: metricBar 2s cubic-bezier(0.23,1,0.32,1) both;
+}
+@keyframes metricCircle {
+  0% { stroke-dasharray: 0 100; }
+  100% { stroke-dasharray: 85 100; }
+}
+.animate-metricCircle {
+  animation: metricCircle 2s cubic-bezier(0.23,1,0.32,1) both;
+}
+/* === Fine Animazioni Metriche === */
+
+/* === Glassmorphism per CTA Buttons === */
+.glassmorphism-cta-btn {
+  @apply shadow-2xl transition-all duration-500 hover:scale-110;
+}
+/* === Fine Glassmorphism CTA Buttons === */
+
+/* === Glassmorphism per CTA Box === */
+.glassmorphism-cta-box {
+  @apply bg-white/5 backdrop-blur-[30px] border border-white/20 rounded-[40px] shadow-lg;
+}
+/* === Fine Glassmorphism CTA Box === */
+
+/* === Card più larghe e basse === */
+.glassmorphism-stat-card,
+.glassmorphism-feature-card,
+.glassmorphism-metric-card {
+  min-height: 180px;
+  width: 100%;
+  padding-left: 2.5rem; /* px-10 */
+  padding-right: 2.5rem;
+  padding-top: 1.5rem; /* py-6 */
+  padding-bottom: 1.5rem;
+}
+.glassmorphism-activity-card {
+  min-height: 160px;
+  width: 100%;
+  padding-left: 2rem; /* px-8 */
+  padding-right: 2rem;
+  padding-top: 1.25rem; /* py-5 */
+  padding-bottom: 1.25rem;
+}
+.glassmorphism-stat-card .animate-iconFloat,
+.glassmorphism-feature-card .animate-iconFloat,
+.glassmorphism-metric-card .animate-iconFloat,
+.glassmorphism-activity-card .animate-iconFloat {
+  margin-bottom: 1rem; /* mb-4 */
+}
+/* === Fine card larghe e basse === */
+
+/* Rimosso overlay scuro body::after su richiesta dell'utente */

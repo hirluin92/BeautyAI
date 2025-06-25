@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BarChart3, Calendar, Users, Package, MessageSquare, Settings, LogOut, Shield, UserCheck } from 'lucide-react'
+import { BarChart3, Calendar, Users, Package, MessageSquare, Settings, LogOut, Shield, UserCheck, Brain, Heart, PieChart } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 const menu = [
@@ -11,6 +11,9 @@ const menu = [
   { href: '/services', label: 'Servizi', icon: Package },
   { href: '/staff', label: 'Staff', icon: UserCheck },
   { href: '/conversations', label: 'Chat WhatsApp', icon: MessageSquare },
+  { href: '/dashboard/quantum', label: 'Quantum AI', icon: Brain },
+  { href: '/dashboard/client-dna', label: 'Client DNA', icon: Heart },
+  { href: '/dashboard/oracle-analytics', label: 'Oracle Analytics', icon: PieChart },
   { href: '/admin', label: 'Admin Panel', icon: Shield },
   { href: '/settings', label: 'Impostazioni', icon: Settings },
 ]
