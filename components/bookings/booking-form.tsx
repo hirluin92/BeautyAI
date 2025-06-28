@@ -120,15 +120,17 @@ export default function BookingForm({
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Load clients
-        const { data: clientsData } = await supabase
+        // Load clients - RIMUOVI il filtro is_active se la colonna non esiste
+        const { data: clientsData, error: clientsError } = await supabase
           .from('clients')
-          .select('id, full_name, phone')
+          .select('id, full_name, phone, email')
           .eq('organization_id', organizationId)
-          .eq('is_active', true)
+          // .eq('is_active', true) // COMMENTA O RIMUOVI questa riga se causa errore 400
           .order('full_name')
 
-        if (clientsData && clientsData.length > 0) {
+        if (clientsError) {
+          console.error('Error loading clients:', clientsError)
+        } else if (clientsData && clientsData.length > 0) {
           // Only set default if no value is already set
           if (!selectedClientId) {
             setValue('client_id', clientsData[0].id)
@@ -136,15 +138,17 @@ export default function BookingForm({
           }
         }
 
-        // Load services with category field
-        const { data: servicesData } = await supabase
+        // Load services - RIMUOVI il filtro is_active se la colonna non esiste
+        const { data: servicesData, error: servicesError } = await supabase
           .from('services')
           .select('id, name, price, duration_minutes, category')
           .eq('organization_id', organizationId)
-          .eq('is_active', true)
+          // .eq('is_active', true) // COMMENTA O RIMUOVI questa riga se causa errore 400
           .order('name')
 
-        if (servicesData && servicesData.length > 0) {
+        if (servicesError) {
+          console.error('Error loading services:', servicesError)
+        } else if (servicesData && servicesData.length > 0) {
           // Find the service if one is already selected
           const service = selectedServiceId 
             ? servicesData.find(s => s.id === selectedServiceId) || servicesData[0]
@@ -157,15 +161,17 @@ export default function BookingForm({
           }
         }
 
-        // Load staff
+        // Load staff - RIMUOVI il filtro is_active se la colonna non esiste
         const { data: staffData, error: staffError } = await supabase
           .from('staff')
           .select('id, full_name')
           .eq('organization_id', organizationId)
-          .eq('is_active', true)
+          // .eq('is_active', true) // COMMENTA O RIMUOVI questa riga se causa errore 400
           .order('full_name')
 
-        if (staffData && staffData.length > 0 && !selectedStaffId) {
+        if (staffError) {
+          console.error('Error loading staff:', staffError)
+        } else if (staffData && staffData.length > 0 && !selectedStaffId) {
           setSelectedStaffId(staffData[0].id)
           setValue('staff_id', staffData[0].id)
         }
@@ -358,17 +364,19 @@ export default function BookingForm({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Client Selection */}
+        {/* PRIMA RIGA */}
+        
+        {/* Cliente - Prima colonna, prima riga */}
         <div>
           <Label htmlFor="client_id">
             <User className="inline w-4 h-4 mr-2" />
             Cliente *
           </Label>
-          <div className="flex gap-2">
+          <div className="flex gap-2 mt-1 items-center w-full">
             <select
               {...register('client_id')}
               id="client_id"
-              className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`flex-1 min-w-0 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.client_id ? 'border-red-300' : 'border-gray-300'
               }`}
             >
@@ -379,46 +387,56 @@ export default function BookingForm({
                 </option>
               ))}
             </select>
-            <ClientQuickAddButton
-              organizationId={organizationId}
-              onClientCreated={handleClientCreated}
-            />
+            <div className="flex-shrink-0">
+              <ClientQuickAddButton
+                organizationId={organizationId}
+                onClientCreated={handleClientCreated}
+              />
+            </div>
           </div>
           {errors.client_id && (
             <p className="text-sm text-red-500 mt-1">{errors.client_id.message?.toString()}</p>
           )}
         </div>
 
-        {/* Service Selection */}
-        <div>
-          <Label htmlFor="service_id">
-            <Scissors className="inline w-4 h-4 mr-2" />
-            Servizio *
-          </Label>
-          <Select
-            value={selectedServiceId}
-            onValueChange={(value) => {
-              setSelectedServiceId(value)
-              setValue('service_id', value)
-            }}
-          >
-            <SelectTrigger className={errors.service_id ? 'border-red-500' : ''}>
-              <SelectValue placeholder="Seleziona un servizio" />
-            </SelectTrigger>
-            <SelectContent>
-              {services.map((service) => (
-                <SelectItem key={service.id} value={service.id}>
-                  {service.name} - {formatCurrency(service.price)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.service_id && (
-            <p className="text-sm text-red-500 mt-1">{errors.service_id.message?.toString()}</p>
-          )}
-        </div>
+        {/* Servizio - Seconda colonna, prima riga */}
+<div>
+  <Label htmlFor="service_id">
+    <Scissors className="inline w-4 h-4 mr-2" />
+    Servizio *
+  </Label>
+  <div className="mt-1">
+    <Select
+      value={selectedServiceId}
+      onValueChange={(value) => {
+        setSelectedServiceId(value)
+        setValue('service_id', value)
+      }}
+    >
+      <SelectTrigger className={errors.service_id ? 'border-red-500' : ''}>
+        <SelectValue placeholder="Seleziona un servizio" />
+      </SelectTrigger>
+      <SelectContent 
+        className="z-[9999]"
+        position="popper"
+        sideOffset={4}
+      >
+        {services.map((service) => (
+          <SelectItem key={service.id} value={service.id}>
+            {service.name} - {formatCurrency(service.price)}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+    {errors.service_id && (
+      <p className="text-sm text-red-500 mt-1">{errors.service_id.message?.toString()}</p>
+    )}
+  </div>
+</div>
 
-        {/* Staff Selection */}
+        {/* SECONDA RIGA */}
+        
+        {/* Staff - Prima colonna, seconda riga */}
         <div>
           <Label htmlFor="staff_id">Staff</Label>
           <Select
@@ -441,42 +459,7 @@ export default function BookingForm({
           </Select>
         </div>
 
-        {/* Date and Time */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="date">
-              <Calendar className="inline w-4 h-4 mr-2" />
-              Data *
-            </Label>
-            <Input
-              {...register('date')}
-              type="date"
-              id="date"
-              className={errors.date ? 'border-red-500' : ''}
-            />
-            {errors.date && (
-              <p className="text-sm text-red-500 mt-1">{errors.date.message?.toString()}</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="time">
-              <Clock className="inline w-4 h-4 mr-2" />
-              Orario *
-            </Label>
-            <Input
-              {...register('time')}
-              type="time"
-              id="time"
-              className={errors.time ? 'border-red-500' : ''}
-            />
-            {errors.time && (
-              <p className="text-sm text-red-500 mt-1">{errors.time.message?.toString()}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Status */}
+        {/* Stato - Seconda colonna, seconda riga */}
         <div>
           <Label htmlFor="status">Stato</Label>
           <select
@@ -492,9 +475,46 @@ export default function BookingForm({
           </select>
         </div>
 
-        {/* Service Details */}
+        {/* TERZA RIGA - Data e Orario affiancati */}
+        <div className="md:col-span-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="date">
+                <Calendar className="inline w-4 h-4 mr-2" />
+                Data *
+              </Label>
+              <Input
+                {...register('date')}
+                type="date"
+                id="date"
+                className={errors.date ? 'border-red-500' : ''}
+              />
+              {errors.date && (
+                <p className="text-sm text-red-500 mt-1">{errors.date.message?.toString()}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="time">
+                <Clock className="inline w-4 h-4 mr-2" />
+                Orario *
+              </Label>
+              <Input
+                {...register('time')}
+                type="time"
+                id="time"
+                className={errors.time ? 'border-red-500' : ''}
+              />
+              {errors.time && (
+                <p className="text-sm text-red-500 mt-1">{errors.time.message?.toString()}</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* QUARTA RIGA - Dettagli servizio */}
         {selectedService && (
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="md:col-span-2 bg-gray-50 p-4 rounded-lg">
             <h3 className="text-sm font-medium text-gray-900 mb-2">Dettagli servizio</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div className="flex items-center">
@@ -513,17 +533,17 @@ export default function BookingForm({
           </div>
         )}
 
-        {/* Availability Check */}
+        {/* Messaggi di disponibilità */}
         {checkingAvailability && (
-          <div className="flex items-center text-blue-600">
+          <div className="md:col-span-2 flex items-center text-blue-600">
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             <span>Verifica disponibilità...</span>
           </div>
         )}
 
         {availabilityError && (
-          <div className="flex items-center text-red-600">
-            <AlertCircle className="w-4 h-4 mr-2" />
+          <div className="md:col-span-2 flex items-center text-red-600">
+            <AlertCircle className="w-4 w-4 mr-2" />
             <span>{availabilityError}</span>
           </div>
         )}

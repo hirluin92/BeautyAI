@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/supabase/requireAuth'
 import { 
   getSearchParamValue, 
   getSearchParamNumber,
-  BookingsListPageProps 
+  SearchablePageProps 
 } from '@/lib/utils'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
@@ -17,7 +17,7 @@ type BookingWithRelations = Database['public']['Tables']['bookings']['Row'] & {
 
 export default async function BookingsPage({ 
   searchParams 
-}: BookingsListPageProps) {
+}: SearchablePageProps) {
   const { userData, supabase } = await requireAuth()
   
   // ✅ FIXED: await both params and searchParams per Next.js 15

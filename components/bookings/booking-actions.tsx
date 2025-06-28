@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Check, X, Clock, AlertCircle } from 'lucide-react'
+import { Check, X, Clock, AlertCircle, DollarSign } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -15,21 +15,56 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 interface BookingActionsProps {
   bookingId: string
   currentStatus: string
+  bookingPrice?: number
   onStatusChange?: (newStatus: string) => void
 }
 
-export function BookingActions({ bookingId, currentStatus, onStatusChange }: BookingActionsProps) {
+interface PaymentData {
+  method: 'cash' | 'card' | 'bank_transfer' | 'mixed'
+  fiscalDocument: 'receipt' | 'invoice' | 'none'
+  amount: number
+  notes: string
+}
+
+export function BookingActions({ 
+  bookingId, 
+  currentStatus, 
+  bookingPrice = 0,
+  onStatusChange 
+}: BookingActionsProps) {
   const [loading, setLoading] = useState<string | null>(null)
   const [showDialog, setShowDialog] = useState<string | null>(null)
+  const [showPaymentForm, setShowPaymentForm] = useState(false)
+  const [paymentData, setPaymentData] = useState<PaymentData>({
+    method: 'cash',
+    fiscalDocument: 'receipt',
+    amount: bookingPrice,
+    notes: ''
+  })
+  
   const supabase = createClient()
 
   const handleAction = async (action: string) => {
+    if (action === 'complete') {
+      // Per "complete", apri il form pagamento invece del dialog di conferma
+      setShowPaymentForm(true)
+      return
+    }
+
     setLoading(action)
     setShowDialog(null)
 
@@ -39,9 +74,6 @@ export function BookingActions({ bookingId, currentStatus, onStatusChange }: Boo
       switch (action) {
         case 'confirm':
           result = await supabase.rpc('confirm_booking', { booking_id: bookingId })
-          break
-        case 'complete':
-          result = await supabase.rpc('complete_booking', { booking_id: bookingId })
           break
         case 'no_show':
           result = await supabase.rpc('mark_booking_no_show', { booking_id: bookingId })
@@ -68,14 +100,9 @@ export function BookingActions({ bookingId, currentStatus, onStatusChange }: Boo
             description: 'Il cliente riceverà una notifica di conferma'
           })
           break
-        case 'complete':
-          toast.success('Prenotazione completata', {
-            description: 'Il servizio è stato completato con successo'
-          })
-          break
         case 'no_show':
           toast.warning('Segnato come No Show', {
-            description: 'Il cliente non si è presentato all&apos;appuntamento'
+            description: 'Il cliente non si è presentato all\'appuntamento'
           })
           break
         case 'cancel':
@@ -86,11 +113,11 @@ export function BookingActions({ bookingId, currentStatus, onStatusChange }: Boo
       }
 
       // Notify parent component
-      const newStatus = action === 'no_show' ? 'no_show' : action === 'complete' ? 'completed' : action === 'confirm' ? 'confirmed' : 'cancelled';
+      const newStatus = action === 'no_show' ? 'no_show' : action === 'confirm' ? 'confirmed' : 'cancelled'
       if (onStatusChange) {
-        onStatusChange(newStatus);
+        onStatusChange(newStatus)
       } else if (typeof window !== 'undefined') {
-        window.location.reload();
+        window.location.reload()
       }
 
     } catch (error: unknown) {
@@ -102,6 +129,62 @@ export function BookingActions({ bookingId, currentStatus, onStatusChange }: Boo
     } finally {
       setLoading(null)
     }
+  }
+
+  const handleCompleteWithPayment = async () => {
+    setLoading('complete')
+
+    try {
+      // Prima salva i dati di pagamento
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .insert({
+          booking_id: bookingId,
+          method: paymentData.method,
+          fiscal_document: paymentData.fiscalDocument,
+          amount: paymentData.amount,
+          notes: paymentData.notes,
+          created_at: new Date().toISOString()
+        })
+
+      if (paymentError) throw paymentError
+
+      // Poi completa la prenotazione
+      const { error: bookingError } = await supabase.rpc('complete_booking', { 
+        booking_id: bookingId 
+      })
+
+      if (bookingError) throw bookingError
+
+      toast.success('Prenotazione completata', {
+        description: 'Servizio completato e pagamento registrato con successo'
+      })
+
+      setShowPaymentForm(false)
+
+      // Notify parent component
+      if (onStatusChange) {
+        onStatusChange('completed')
+      } else if (typeof window !== 'undefined') {
+        window.location.reload()
+      }
+
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Si è verificato un errore'
+      console.error('Error completing booking with payment:', error)
+      toast.error('Errore durante il completamento', {
+        description: errorMessage
+      })
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  const calculateTaxBreakdown = () => {
+    const total = paymentData.amount
+    const taxableAmount = total / 1.22 // Assumendo IVA 22%
+    const taxAmount = total - taxableAmount
+    return { taxableAmount, taxAmount, total }
   }
 
   // Don't show actions for completed or cancelled bookings
@@ -128,7 +211,7 @@ export function BookingActions({ bookingId, currentStatus, onStatusChange }: Boo
         <Button
           size="sm"
           variant="outline"
-          onClick={() => setShowDialog('complete')}
+          onClick={() => handleAction('complete')}
           disabled={loading !== null}
           className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
         >
@@ -159,7 +242,157 @@ export function BookingActions({ bookingId, currentStatus, onStatusChange }: Boo
         </Button>
       </div>
 
-      {/* Confirmation Dialogs */}
+      {/* Payment Form Dialog */}
+      <Dialog open={showPaymentForm} onOpenChange={setShowPaymentForm}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <DollarSign className="w-5 h-5 mr-2 text-green-600" />
+              Completa Servizio - Inserisci Dati Pagamento
+            </DialogTitle>
+            <DialogDescription>
+              Prima di completare il servizio, inserisci i dati del pagamento
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Payment Method */}
+            <div>
+              <Label className="text-sm font-medium">Metodo di Pagamento</Label>
+              <div className="mt-2 space-y-2">
+                {[
+                  { value: 'cash', label: '💵 Contanti', icon: '💵' },
+                  { value: 'card', label: '💳 Carta', icon: '💳' },
+                  { value: 'bank_transfer', label: '🏦 Bonifico', icon: '🏦' },
+                  { value: 'mixed', label: '🔄 Pagamento Misto', icon: '🔄' }
+                ].map((method) => (
+                  <label key={method.value} className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      value={method.value}
+                      checked={paymentData.method === method.value}
+                      onChange={(e) => setPaymentData(prev => ({
+                        ...prev,
+                        method: e.target.value as PaymentData['method']
+                      }))}
+                      className="text-blue-600"
+                    />
+                    <span>{method.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Fiscal Document */}
+            <div>
+              <Label className="text-sm font-medium">Documento Fiscale</Label>
+              <div className="mt-2 space-y-2">
+                {[
+                  { value: 'receipt', label: '📄 Scontrino fiscale', icon: '📄' },
+                  { value: 'invoice', label: '📋 Fattura elettronica', icon: '📋' },
+                  { value: 'none', label: '❌ Nessun documento', icon: '❌' }
+                ].map((doc) => (
+                  <label key={doc.value} className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      value={doc.value}
+                      checked={paymentData.fiscalDocument === doc.value}
+                      onChange={(e) => setPaymentData(prev => ({
+                        ...prev,
+                        fiscalDocument: e.target.value as PaymentData['fiscalDocument']
+                      }))}
+                      className="text-blue-600"
+                    />
+                    <span>{doc.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Amount */}
+            <div>
+              <Label htmlFor="amount">Importo Effettivo</Label>
+              <Input
+                id="amount"
+                type="number"
+                value={paymentData.amount}
+                onChange={(e) => setPaymentData(prev => ({
+                  ...prev,
+                  amount: parseFloat(e.target.value) || 0
+                }))}
+                step="0.01"
+                min="0"
+                className="mt-1"
+              />
+            </div>
+
+            {/* Tax Breakdown */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-blue-900 mb-2">Riepilogo Fiscale:</h3>
+              <div className="grid grid-cols-3 gap-4 text-sm text-blue-800">
+                <div>
+                  <span className="block font-medium">Importo totale:</span>
+                  <span>€{calculateTaxBreakdown().total.toFixed(2)}</span>
+                </div>
+                <div>
+                  <span className="block font-medium">Imponibile:</span>
+                  <span>€{calculateTaxBreakdown().taxableAmount.toFixed(2)}</span>
+                </div>
+                <div>
+                  <span className="block font-medium">IVA (22%):</span>
+                  <span>€{calculateTaxBreakdown().taxAmount.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <Label htmlFor="payment-notes">Note Pagamento</Label>
+              <Textarea
+                id="payment-notes"
+                value={paymentData.notes}
+                onChange={(e) => setPaymentData(prev => ({
+                  ...prev,
+                  notes: e.target.value
+                }))}
+                placeholder="Note aggiuntive sul pagamento..."
+                rows={3}
+                className="mt-1"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-2 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => setShowPaymentForm(false)}
+                disabled={loading !== null}
+              >
+                Annulla
+              </Button>
+              <Button
+                onClick={handleCompleteWithPayment}
+                disabled={loading !== null || paymentData.amount <= 0}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {loading === 'complete' ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Completamento...
+                  </div>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Completa e Salva Pagamento
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Existing Confirmation Dialogs */}
       <AlertDialog open={showDialog === 'confirm'} onOpenChange={(open: boolean) => !open && setShowDialog(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -172,23 +405,6 @@ export function BookingActions({ bookingId, currentStatus, onStatusChange }: Boo
             <AlertDialogCancel>Annulla</AlertDialogCancel>
             <AlertDialogAction onClick={() => handleAction('confirm')}>
               Conferma
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={showDialog === 'complete'} onOpenChange={(open: boolean) => !open && setShowDialog(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Completa Servizio</AlertDialogTitle>
-            <AlertDialogDescription>
-              Confermi che il servizio è stato completato?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annulla</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleAction('complete')}>
-              Completa
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -237,4 +453,4 @@ export function BookingActions({ bookingId, currentStatus, onStatusChange }: Boo
   )
 }
 
-export default BookingActions;
+export default BookingActions

@@ -14,6 +14,7 @@ export default function ClientQuickAddModal({ organizationId, onClose, onClientC
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({})
   
   const [formData, setFormData] = useState({
     full_name: '',
@@ -21,8 +22,31 @@ export default function ClientQuickAddModal({ organizationId, onClose, onClientC
     email: ''
   })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {}
+    
+    if (!formData.full_name.trim()) {
+      errors.full_name = 'Nome completo è obbligatorio'
+    }
+    
+    if (!formData.phone.trim()) {
+      errors.phone = 'Telefono è obbligatorio'
+    }
+    
+    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
+      errors.email = 'Email non valida'
+    }
+    
+    setValidationErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  const handleSave = async () => {
+    // Validation manuale invece di usare required sui campi
+    if (!validateForm()) {
+      return
+    }
+
     setLoading(true)
     setError(null)
 
@@ -31,9 +55,9 @@ export default function ClientQuickAddModal({ organizationId, onClose, onClientC
         .from('clients')
         .insert({
           organization_id: organizationId,
-          full_name: formData.full_name,
-          phone: formData.phone,
-          email: formData.email || null
+          full_name: formData.full_name.trim(),
+          phone: formData.phone.trim(),
+          email: formData.email.trim() || null
         })
         .select()
         .single()
@@ -46,6 +70,14 @@ export default function ClientQuickAddModal({ organizationId, onClose, onClientC
       setError(errorMessage)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData({ ...formData, [field]: value })
+    // Pulisci l'errore di validazione quando l'utente inizia a digitare
+    if (validationErrors[field]) {
+      setValidationErrors({ ...validationErrors, [field]: '' })
     }
   }
 
@@ -62,7 +94,7 @@ export default function ClientQuickAddModal({ organizationId, onClose, onClientC
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6">
+        <div className="p-6">
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center">
               <AlertCircle className="w-5 h-5 text-red-600 mr-2" />
@@ -79,10 +111,15 @@ export default function ClientQuickAddModal({ organizationId, onClose, onClientC
               <input
                 type="text"
                 value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                required
+                onChange={(e) => handleInputChange('full_name', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  validationErrors.full_name ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="Inserisci nome e cognome"
               />
+              {validationErrors.full_name && (
+                <p className="text-sm text-red-500 mt-1">{validationErrors.full_name}</p>
+              )}
             </div>
 
             <div>
@@ -93,10 +130,15 @@ export default function ClientQuickAddModal({ organizationId, onClose, onClientC
               <input
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                required
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  validationErrors.phone ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="Inserisci numero di telefono"
               />
+              {validationErrors.phone && (
+                <p className="text-sm text-red-500 mt-1">{validationErrors.phone}</p>
+              )}
             </div>
 
             <div>
@@ -107,9 +149,15 @@ export default function ClientQuickAddModal({ organizationId, onClose, onClientC
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  validationErrors.email ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="Inserisci email (opzionale)"
               />
+              {validationErrors.email && (
+                <p className="text-sm text-red-500 mt-1">{validationErrors.email}</p>
+              )}
             </div>
           </div>
 
@@ -117,19 +165,21 @@ export default function ClientQuickAddModal({ organizationId, onClose, onClientC
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              disabled={loading}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
             >
               Annulla
             </button>
             <button
-              type="submit"
+              type="button"
               disabled={loading}
+              onClick={handleSave}
               className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50"
             >
               {loading ? 'Creazione...' : 'Crea Cliente'}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   )

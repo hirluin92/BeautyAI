@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BarChart3, Calendar, Users, Package, MessageSquare, Settings, LogOut, Shield, UserCheck, Brain, Heart, PieChart, Satellite, ChevronDown, ChevronRight, Clock3 } from 'lucide-react'
+import { BarChart3, Calendar, Users, Package, MessageSquare, Settings, LogOut, Shield, UserCheck, Brain, Heart, PieChart, Satellite, ChevronDown, ChevronRight, Clock3, DollarSign } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 const navigation = [
@@ -16,6 +16,7 @@ const navigation = [
   { href: '/neural-genesis', name: 'Neural Genesis', icon: Brain },
   { href: '/dashboard/client-dna', name: 'Client DNA', icon: Heart },
   { href: '/dashboard/oracle-analytics', name: 'Oracle Analytics', icon: PieChart },
+  { href: '/dashboard/financial-analytics', name: 'Analytics Finanziarie', icon: DollarSign },
   {
     name: 'Omni Presence',
     href: '/omni-presence',
