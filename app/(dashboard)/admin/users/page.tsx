@@ -7,7 +7,7 @@ export default async function AdminUsersPage() {
   // Fetch users data server-side
   const { data: users, error } = await supabase
     .from('users')
-    .select('id, email, role, is_active, created_at')
+    .select('id, role, is_active, created_at')
     .order('created_at', { ascending: false })
 
   if (error) {

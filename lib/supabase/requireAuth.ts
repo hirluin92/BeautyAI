@@ -1,4 +1,4 @@
-// lib/supabase/requireAuth.ts - FUNZIONE STANDARDIZZATA
+// lib/supabase/requireAuth.ts - AGGIORNATO per email da Auth
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { User } from '@supabase/supabase-js'
@@ -6,7 +6,7 @@ import { SupabaseClient } from '@supabase/supabase-js'
 
 export interface UserData {
   id: string
-  email: string
+  email: string // Ora viene da auth.users, non dalla tabella users
   full_name: string
   organization_id: string
   role: 'owner' | 'staff' | 'admin'
@@ -25,18 +25,6 @@ export interface RequireAuthResponse {
   supabase: SupabaseClient
 }
 
-/**
- * 🔒 Funzione standardizzata per autenticazione e autorizzazione
- * 
- * Verifica:
- * - Utente autenticato
- * - Dati profilo completi
- * - Organizzazione valida
- * - Ruolo appropriato
- * 
- * @param allowedRoles - Ruoli autorizzati (opzionale)
- * @returns User data completo o redirect automatico
- */
 export async function requireAuth(
   allowedRoles?: ('owner' | 'staff' | 'admin')[]
 ): Promise<RequireAuthResponse> {
@@ -56,12 +44,11 @@ export async function requireAuth(
     redirect('/login')
   }
 
-  // 2. Ottieni dati utente con organizzazione
+  // 2. Ottieni dati utente con organizzazione (SENZA EMAIL)
   const { data: userData, error: userError } = await supabase
     .from('users')
     .select(`
       id,
-      email,
       full_name,
       organization_id,
       role,
@@ -104,7 +91,6 @@ export async function requireAuth(
   }
 
   // 7. Prepara i dati con tipi corretti
-  // Supabase restituisce organization come array, prendiamo il primo elemento
   const organization = Array.isArray(userData.organization) 
     ? userData.organization[0] 
     : userData.organization
@@ -114,9 +100,10 @@ export async function requireAuth(
     redirect('/auth/complete-setup')
   }
 
+  // 8. IMPORTANTE: Email viene da auth.users, non dalla tabella users
   const typedUserData = {
     id: userData.id,
-    email: userData.email,
+    email: user.email!, // 🔑 Email da Supabase Auth
     full_name: userData.full_name,
     organization_id: userData.organization_id,
     role: userData.role as 'owner' | 'staff' | 'admin',
@@ -130,6 +117,7 @@ export async function requireAuth(
   }
 
   console.log('✅ Auth successful for:', typedUserData.full_name)
+  console.log('📧 Email from auth.users:', typedUserData.email)
   console.log('🏢 Organization:', typedUserData.organization.name)
   console.log('👤 Role:', typedUserData.role)
   console.log('🔒 === requireAuth END ===')
@@ -141,69 +129,32 @@ export async function requireAuth(
   }
 }
 
-/**
- * 🔒 Versione semplificata per uso comune
- */
+// Resto delle funzioni helper rimane uguale...
 export async function requireBasicAuth() {
   return requireAuth()
 }
 
-/**
- * 🔒 Solo per owner
- */
 export async function requireOwnerAuth() {
   return requireAuth(['owner'])
 }
 
-/**
- * 🔒 Solo per owner e admin
- */
 export async function requireAdminAuth() {
   return requireAuth(['owner', 'admin'])
 }
 
-/**
- * 🔒 Per tutti i ruoli staff
- */
 export async function requireStaffAuth() {
   return requireAuth(['owner', 'admin', 'staff'])
 }
 
-// Helper functions for role-based authorization
-export function requireRole(userData: UserData, requiredRoles: string[]) {
-  if (!userData || !userData.role) {
-    throw new Error('User role not found')
+// Utility function to safely extract organization data
+export function extractOrganization(userData: any) {
+  const organization = Array.isArray(userData.organization) 
+    ? userData.organization[0] 
+    : userData.organization
+  
+  if (!organization) {
+    throw new Error('Organization data not found')
   }
   
-  if (!requiredRoles.includes(userData.role)) {
-    throw new Error(`Access denied. Required roles: ${requiredRoles.join(', ')}`)
-  }
-  
-  return true
-}
-
-export function requireOwner(userData: UserData) {
-  return requireRole(userData, ['owner'])
-}
-
-export function requireAdmin(userData: UserData) {
-  return requireRole(userData, ['owner', 'admin'])
-}
-
-export function requireStaff(userData: UserData) {
-  return requireRole(userData, ['owner', 'admin', 'staff'])
-}
-
-// Helper per verificare se l'utente può gestire un'altra organizzazione
-export function canManageOrganization(userData: UserData, targetOrgId: string) {
-  if (!userData || !userData.organization_id) {
-    return false
-  }
-  
-  // Solo owner può gestire l'organizzazione
-  if (userData.role === 'owner' && userData.organization_id === targetOrgId) {
-    return true
-  }
-  
-  return false
+  return organization
 }

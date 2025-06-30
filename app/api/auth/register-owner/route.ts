@@ -1,0 +1,246 @@
+// app/api/auth/register-owner/route.ts
+import { createServiceClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+
+const registerOwnerSchema = z.object({
+  userData: z.object({
+    fullName: z.string().min(2).max(100),
+    email: z.string().email(),
+    password: z.string().min(8),
+    phone: z.string().optional()
+  }),
+  organizationData: z.object({
+    name: z.string().min(2).max(255),
+    address: z.string().optional(),
+    phone: z.string().optional(),
+    workingDays: z.array(z.string()).optional(),
+    openingTime: z.string().optional(),
+    closingTime: z.string().optional(),
+    description: z.string().optional()
+  })
+})
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    console.log('🚀 Register Owner API - Starting...')
+    
+    // Validazione input
+    const validatedData = registerOwnerSchema.parse(body)
+    const { userData, organizationData } = validatedData
+
+    const serviceClient = await createServiceClient()
+
+    // 1. PRIMO - Verifica COMPLETA: email in Auth E nella tabella users
+    console.log('🔍 Checking if email exists anywhere...')
+    
+    // 1. PRIMO - Verifica se l'email esiste in Supabase Auth
+    console.log('🔍 Checking if email exists in Auth...')
+    
+    try {
+      const { data: authUsers, error: authListError } = await serviceClient.auth.admin.listUsers()
+      
+      if (authListError) {
+        console.warn('⚠️ Cannot check auth users:', authListError)
+        // Continua comunque, il controllo finale sarà fatto da createUser
+      } else {
+        const existingAuthUser = authUsers.users.find(user => user.email === userData.email)
+        if (existingAuthUser) {
+          console.log('❌ Email already exists in Auth')
+          return NextResponse.json(
+            { error: 'Email già registrata nel sistema. Usa il login.' },
+            { status: 400 }
+          )
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Auth check failed, proceeding anyway:', error)
+      // Continua comunque
+    }
+
+    // 2. SECONDO - Verifica se il nome organizzazione esiste già
+    console.log('🔍 Checking if organization name exists...')
+    
+    const orgSlug = organizationData.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+
+    const { data: existingOrg, error: checkOrgError } = await serviceClient
+      .from('organizations')
+      .select('id, name, slug')
+      .or(`name.ilike."${organizationData.name}",slug.eq."${orgSlug}"`)
+      .single()
+
+    console.log('🔍 Check organization:', { existingOrg, checkOrgError })
+
+    if (existingOrg) {
+      console.log('❌ Organization name already exists')
+      return NextResponse.json(
+        { error: `Il nome del salone "${organizationData.name}" è già utilizzato. Scegli un nome diverso.` },
+        { status: 400 }
+      )
+    }
+
+    console.log('✅ Email and organization name are available!')
+    console.log('🚀 Proceeding with account creation...')
+
+    // 3. TERZO - Ora che abbiamo verificato che NON esistono, creiamo tutto
+    // Crea utente in Supabase Auth (INATTIVO, richiede conferma email)
+    const { data: authData, error: authError } = await serviceClient.auth.admin.createUser({
+      email: userData.email,
+      password: userData.password,
+      email_confirm: false, // 🔑 IMPORTANTE: richiede conferma email
+      user_metadata: {
+        full_name: userData.fullName,
+        phone: userData.phone,
+        pending_setup: true,
+        organization_name: organizationData.name
+      }
+    })
+
+    if (authError || !authData.user) {
+      console.error('❌ Auth creation error:', authError)
+      
+      // Gestione errori specifici
+      if (authError?.message?.includes('already registered') || authError?.message?.includes('already exists')) {
+        return NextResponse.json(
+          { error: 'Email già utilizzata. Prova con il login o usa un\'altra email.' },
+          { status: 400 }
+        )
+      }
+      
+      return NextResponse.json(
+        { error: `Errore durante la creazione dell'account: ${authError?.message || 'Errore sconosciuto'}` },
+        { status: 400 }
+      )
+    }
+
+    console.log('✅ Auth user created (inactive):', authData.user.id)
+    console.log('📧 Supabase will send confirmation email automatically')
+
+    // 4. QUARTO - Crea organizzazione
+    const { data: organization, error: orgError } = await serviceClient
+      .from('organizations')
+      .insert({
+        name: organizationData.name,
+        slug: orgSlug,
+        email: userData.email,
+        plan_type: 'free',
+        client_count: 0,
+        address: organizationData.address,
+        phone: organizationData.phone,
+        working_days: organizationData.workingDays,
+        opening_time: organizationData.openingTime,
+        closing_time: organizationData.closingTime,
+        description: organizationData.description
+      })
+      .select()
+      .single()
+
+    if (orgError || !organization) {
+      console.error('❌ Organization error:', orgError)
+      
+      // ROLLBACK: elimina utente Auth creato
+      await serviceClient.auth.admin.deleteUser(authData.user.id)
+      console.log('🧹 Cleaned up auth user due to organization error')
+      
+      return NextResponse.json(
+        { error: `Errore durante la creazione dell'organizzazione: ${orgError?.message || 'Errore sconosciuto'}` },
+        { status: 500 }
+      )
+    }
+
+    console.log('✅ Organization created:', organization.id)
+
+    // 5. QUINTO - Crea profilo utente (SENZA EMAIL - già in auth.users)
+    const { error: userError } = await serviceClient
+      .from('users')
+      .insert({
+        id: authData.user.id,
+        // email: NON PIÙ NECESSARIO - già in auth.users
+        full_name: userData.fullName,
+        phone: userData.phone || null,
+        organization_id: organization.id,
+        role: 'owner',
+        is_active: false, // 🔑 IMPORTANTE: inattivo fino alla conferma email
+        avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.fullName)}&background=6366f1&color=fff`
+      })
+
+    if (userError) {
+      console.error('❌ User profile error:', userError)
+      
+      // ROLLBACK COMPLETO: elimina organizzazione e utente Auth
+      await serviceClient.from('organizations').delete().eq('id', organization.id)
+      await serviceClient.auth.admin.deleteUser(authData.user.id)
+      console.log('🧹 Complete rollback due to user profile error')
+      
+      return NextResponse.json(
+        { error: `Errore durante la creazione del profilo utente: ${userError?.message || 'Errore sconosciuto'}` },
+        { status: 500 }
+      )
+    }
+
+    console.log('✅ User profile created (inactive until email confirmation)')
+
+    // 6. SESTO - Genera codice invito per staff (inattivo fino alla conferma)
+    const inviteCode = `${orgSlug.toUpperCase().slice(0, 6)}${Math.random().toString(36).slice(2, 6).toUpperCase()}`
+    
+    const { error: inviteError } = await serviceClient
+      .from('salon_invite_codes')
+      .insert({
+        organization_id: organization.id,
+        code: inviteCode,
+        created_by: authData.user.id,
+        expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 anno
+        max_uses: 10,
+        is_active: true
+      })
+
+    if (inviteError) {
+      console.warn('⚠️ Could not create invite code:', inviteError)
+      // Non bloccare per questo, è opzionale
+    }
+
+    // 7. SETTIMO - Conferma che email di attivazione è stata inviata
+    return NextResponse.json({
+      success: true,
+      message: 'Account creato! Controlla la tua email per attivare l\'account e accedere alla dashboard.',
+      data: {
+        user: {
+          id: authData.user.id,
+          email: userData.email,
+          full_name: userData.fullName,
+          email_confirmed: false,
+          is_active: false
+        },
+        organization: {
+          id: organization.id,
+          name: organization.name,
+          slug: organization.slug
+        },
+        inviteCode: inviteCode || null,
+        nextSteps: [
+          '1. Controlla la tua email per il link di attivazione',
+          '2. Clicca sul link per confermare l\'account',
+          '3. Torna al login per accedere alla dashboard'
+        ]
+      }
+    })
+
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Dati non validi', details: error.errors },
+        { status: 400 }
+      )
+    }
+    
+    console.error('❌ Registration error:', error)
+    return NextResponse.json(
+      { error: 'Errore interno del server' },
+      { status: 500 }
+    )
+  }
+}

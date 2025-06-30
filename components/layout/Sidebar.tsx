@@ -1,235 +1,247 @@
 'use client'
+
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BarChart3, Calendar, Users, Package, MessageSquare, Settings, LogOut, Shield, UserCheck, Brain, Heart, PieChart, Satellite, ChevronDown, ChevronRight, Clock3, DollarSign } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { 
+  LayoutDashboard, 
+  Calendar, 
+  Users, 
+  Briefcase, 
+  UserCheck, 
+  Settings, 
+  BarChart3, 
+  MessageCircle, 
+  Sparkles,
+  Menu,
+  X,
+  LogOut,
+  User,
+  Building2
+} from 'lucide-react'
 
-const navigation = [
-  { href: '/dashboard', name: 'Dashboard', icon: BarChart3 },
-  { href: '/calendar', name: 'Calendario', icon: Calendar },
-  { href: '/clients', name: 'Clienti', icon: Users },
-  { href: '/services', name: 'Servizi', icon: Package },
-  { href: '/staff', name: 'Staff', icon: UserCheck },
-  { href: '/conversations', name: 'Chat WhatsApp', icon: MessageSquare },
-  { href: '/dashboard/quantum', name: 'Quantum AI', icon: Brain },
-  { href: '/time-singularity', name: 'Time Singularity', icon: Clock3 },
-  { href: '/neural-genesis', name: 'Neural Genesis', icon: Brain },
-  { href: '/dashboard/client-dna', name: 'Client DNA', icon: Heart },
-  { href: '/dashboard/oracle-analytics', name: 'Oracle Analytics', icon: PieChart },
-  { href: '/dashboard/financial-analytics', name: 'Analytics Finanziarie', icon: DollarSign },
+const menuItems = [
   {
-    name: 'Omni Presence',
-    href: '/omni-presence',
-    icon: Satellite,
-    children: [
-      { name: 'Overview', href: '/omni-presence' },
-      { name: 'Campagne', href: '/omni-presence/campaigns' },
-      { name: 'AI Personas', href: '/omni-presence/ai-personas' },
-      { name: 'Analytics', href: '/omni-presence/analytics' },
-      { name: 'Configurazioni', href: '/omni-presence/settings' }
-    ]
+    href: '/dashboard',
+    icon: LayoutDashboard,
+    label: 'Dashboard',
+    gradient: 'from-purple-500 to-pink-500'
   },
-  { href: '/admin', name: 'Admin Panel', icon: Shield },
-  { href: '/settings', name: 'Impostazioni', icon: Settings },
+  {
+    href: '/calendar',
+    icon: Calendar,
+    label: 'Calendario',
+    gradient: 'from-blue-500 to-cyan-500'
+  },
+  {
+    href: '/bookings',
+    icon: Briefcase,
+    label: 'Prenotazioni',
+    gradient: 'from-green-500 to-emerald-500'
+  },
+  {
+    href: '/clients',
+    icon: Users,
+    label: 'Clienti',
+    gradient: 'from-orange-500 to-red-500'
+  },
+  {
+    href: '/services',
+    icon: UserCheck,
+    label: 'Servizi',
+    gradient: 'from-violet-500 to-purple-500'
+  },
+  {
+    href: '/staff',
+    icon: UserCheck,
+    label: 'Staff',
+    gradient: 'from-indigo-500 to-blue-500'
+  },
+  {
+    href: '/analytics',
+    icon: BarChart3,
+    label: 'Analytics',
+    gradient: 'from-teal-500 to-green-500'
+  },
+  {
+    href: '/ai-chat',
+    icon: MessageCircle,
+    label: 'AI Assistant',
+    gradient: 'from-pink-500 to-rose-500'
+  },
+  {
+    href: '/settings',
+    icon: Settings,
+    label: 'Impostazioni',
+    gradient: 'from-gray-500 to-slate-500'
+  }
 ]
 
-export default function Sidebar() {
+export default function ModernSidebar() {
   const pathname = usePathname()
-  const [open, setOpen] = useState(false)
-  const [expandedMenus, setExpandedMenus] = useState<string[]>([])
-  
-  // TODO: recupera nome organizzazione via API o context se vuoi
-  const organizationName = 'Nome Organizzazione'
+  const [isOpen, setIsOpen] = useState(false)
+  const [currentTime, setCurrentTime] = useState(new Date())
 
-  // Ascolta evento custom per apertura sidebar mobile
   useEffect(() => {
-    const handler = () => setOpen(true)
-    window.addEventListener('openSidebar', handler)
-    return () => window.removeEventListener('openSidebar', handler)
+    const timer = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+
+    return () => clearInterval(timer)
   }, [])
 
-  // Auto-expand menu se siamo in una pagina figlia
-  useEffect(() => {
-    const activeMenu = navigation.find(item => 
-      item.children && item.children.some(child => pathname === child.href || pathname.startsWith(child.href))
-    )
-    if (activeMenu && !expandedMenus.includes(activeMenu.name)) {
-      setExpandedMenus(prev => [...prev, activeMenu.name])
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+      window.location.href = '/login'
+    } catch (error) {
+      console.error('Logout error:', error)
     }
-  }, [pathname, expandedMenus])
-
-  // Funzione per determinare se una voce è attiva
-  const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
-
-  // Toggle menu espandibile
-  const toggleMenu = (menuName: string) => {
-    setExpandedMenus(prev => 
-      prev.includes(menuName) 
-        ? prev.filter(name => name !== menuName)
-        : [...prev, menuName]
-    )
   }
 
-  // Sidebar vera solo su desktop
   return (
     <>
-      {/* Sidebar desktop */}
-      <aside className="hidden md:fixed md:left-0 md:top-0 md:h-full md:w-64 md:bg-white md:shadow-lg md:flex md:flex-col z-40">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-800">Beauty AI</h2>
-          <p className="text-sm text-gray-600">{organizationName}</p>
-        </div>
-        <nav className="mt-0 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent hover:scrollbar-thumb-gray-300">
-          {navigation.map((item) => {
-            if (!item.children) {
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="md:hidden fixed top-4 left-4 z-50 p-3 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 text-white hover:bg-white/20 transition-all"
+      >
+        {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+      </button>
+
+      {/* Overlay for mobile */}
+      {isOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-30"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`
+          fixed top-0 left-0 h-full w-64 
+          bg-white/10 backdrop-blur-xl border-r border-white/20
+          transform transition-transform duration-300 z-40
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          md:translate-x-0
+        `}
+      >
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="p-6 border-b border-white/10">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-white">Beauty AI</h1>
+                <p className="text-white/60 text-sm">Dashboard</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Time Display */}
+          <div className="px-6 py-4 border-b border-white/10">
+            <div className="text-center">
+              <div className="text-white/90 font-mono text-lg">
+                {currentTime.toLocaleTimeString('it-IT', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                })}
+              </div>
+              <div className="text-white/60 text-sm">
+                {currentTime.toLocaleDateString('it-IT', { 
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'short'
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 px-6 py-4 space-y-2">
+            {menuItems.map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
               const Icon = item.icon
+
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50 transition
-                    ${isActive(item.href) ? 'bg-indigo-50 text-indigo-700 border-r-4 border-indigo-700 font-semibold' : ''}`}
+                  onClick={() => setIsOpen(false)}
+                  className={`
+                    group flex items-center space-x-3 px-4 py-3 rounded-xl
+                    transition-all duration-300 relative overflow-hidden
+                    ${isActive 
+                      ? 'bg-white/20 text-white shadow-lg' 
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                    }
+                  `}
                 >
-                  <Icon className="w-5 h-5 mr-3" />
-                  {item.name}
+                  {/* Active indicator */}
+                  {isActive && (
+                    <div className="absolute inset-0 bg-gradient-to-r opacity-20 rounded-xl"
+                         style={{
+                           backgroundImage: `linear-gradient(135deg, var(--tw-gradient-stops))`,
+                         }} 
+                    />
+                  )}
+                  
+                  {/* Icon with gradient */}
+                  <div className={`
+                    w-6 h-6 rounded-lg flex items-center justify-center
+                    ${isActive ? `bg-gradient-to-r ${item.gradient}` : ''}
+                  `}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  
+                  <span className="font-medium">{item.label}</span>
+                  
+                  {/* Active glow effect */}
+                  {isActive && (
+                    <div className="absolute inset-0 rounded-xl ring-1 ring-white/30" />
+                  )}
                 </Link>
               )
-            }
-            // Se ha children (Omni Presence)
-            const Icon = item.icon
-            const isExpanded = expandedMenus.includes(item.name)
-            const parentActive = item.children.some(child => isActive(child.href)) || isActive(item.href)
-            
-            return (
-              <div key={item.name}>
-                <button
-                  onClick={() => toggleMenu(item.name)}
-                  className={`flex items-center justify-between w-full px-6 py-3 text-gray-700 hover:bg-gray-50 transition
-                    ${parentActive ? 'bg-indigo-50 text-indigo-700 border-r-4 border-indigo-700 font-semibold' : ''}`}
-                >
-                  <div className="flex items-center">
-                    <Icon className="w-5 h-5 mr-3" />
-                    {item.name}
-                  </div>
-                  {isExpanded ? (
-                    <ChevronDown className="w-4 h-4" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4" />
-                  )}
-                </button>
-                {isExpanded && (
-                  <div className="ml-8 mt-1 space-y-1">
-                    {item.children.map(child => (
-                      <Link
-                        key={child.href}
-                        href={child.href}
-                        className={`block px-3 py-2 rounded text-sm transition
-                          ${isActive(child.href) ? 'bg-indigo-100 text-indigo-800 font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}
-                      >
-                        {child.name}
-                      </Link>
-                    ))}
-                  </div>
-                )}
+            })}
+          </nav>
+
+          {/* User Profile */}
+          <div className="p-6 border-t border-white/10">
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 space-y-3">
+              {/* User Info */}
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl flex items-center justify-center">
+                  <User className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-medium text-sm truncate">
+                    Mimmo Ricci
+                  </p>
+                  <p className="text-white/60 text-xs">Owner</p>
+                </div>
               </div>
-            )
-          })}
-        </nav>
-        <div className="p-6 mt-auto border-t border-gray-200">
-          <form action="/api/auth/logout" method="POST">
-            <button type="submit" className="flex items-center text-gray-700 hover:text-red-600 w-full">
-              <LogOut className="w-5 h-5 mr-3" />
-              Esci
-            </button>
-          </form>
-        </div>
-      </aside>
-      {/* Hamburger per mobile */}
-      <button
-        className="fixed top-4 left-4 z-50 md:hidden bg-white rounded-full shadow-lg p-2 border border-gray-200"
-        onClick={() => setOpen(true)}
-        aria-label="Apri menu"
-      >
-        <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
-      </button>
-      {/* Drawer mobile */}
-      {open && (
-        <div className="fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black bg-opacity-40 transition-opacity duration-200" onClick={() => setOpen(false)} tabIndex={0} aria-label="Chiudi menu" />
-          <aside className="relative w-4/5 max-w-xs bg-white h-full shadow-lg flex flex-col animate-slide-in-left focus:outline-none" tabIndex={-1} aria-modal="true" role="dialog">
-            <div className="p-4 flex justify-between items-center border-b">
-              <h2 className="text-2xl font-bold text-gray-800">Beauty AI</h2>
-              <button onClick={() => setOpen(false)} aria-label="Chiudi menu" className="p-2 rounded-full hover:bg-gray-100">
-                <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+
+              {/* Organization */}
+              <div className="flex items-center space-x-2 text-white/60">
+                <Building2 className="w-4 h-4" />
+                <span className="text-xs truncate">Prinpi</span>
+              </div>
+
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-white/10 hover:bg-red-500/20 text-white/70 hover:text-red-300 rounded-lg transition-all duration-300"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="text-sm">Logout</span>
               </button>
             </div>
-            <nav className="mt-4 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent hover:scrollbar-thumb-gray-300">
-              {navigation.map((item) => {
-                if (!item.children) {
-                  const Icon = item.icon
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50 transition
-                        ${isActive(item.href) ? 'bg-indigo-50 text-indigo-700 border-r-4 border-indigo-700 font-semibold' : ''}`}
-                      onClick={() => setOpen(false)}
-                    >
-                      <Icon className="w-5 h-5 mr-3" />
-                      {item.name}
-                    </Link>
-                  )
-                }
-                const Icon = item.icon
-                const isExpanded = expandedMenus.includes(item.name)
-                const parentActive = item.children.some(child => isActive(child.href)) || isActive(item.href)
-                return (
-                  <div key={item.name}>
-                    <button
-                      onClick={() => toggleMenu(item.name)}
-                      className={`flex items-center justify-between w-full px-6 py-3 text-gray-700 hover:bg-gray-50 transition
-                        ${parentActive ? 'bg-indigo-50 text-indigo-700 border-r-4 border-indigo-700 font-semibold' : ''}`}
-                    >
-                      <div className="flex items-center">
-                        <Icon className="w-5 h-5 mr-3" />
-                        {item.name}
-                      </div>
-                      {isExpanded ? (
-                        <ChevronDown className="w-4 h-4" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4" />
-                      )}
-                    </button>
-                    {isExpanded && (
-                      <div className="ml-8 mt-1 space-y-1">
-                        {item.children.map(child => (
-                          <Link
-                            key={child.href}
-                            href={child.href}
-                            className={`block px-3 py-2 rounded text-sm transition
-                              ${isActive(child.href) ? 'bg-indigo-100 text-indigo-800 font-semibold' : 'text-gray-600 hover:bg-gray-50'}`}
-                            onClick={() => setOpen(false)}
-                          >
-                            {child.name}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </nav>
-            <div className="p-4 mt-auto border-t">
-              <form action="/api/auth/logout" method="POST">
-                <button type="submit" className="flex items-center text-gray-700 hover:text-red-600 w-full">
-                  <LogOut className="w-5 h-5 mr-3" />
-                  Esci
-                </button>
-              </form>
-            </div>
-          </aside>
+          </div>
         </div>
-      )}
+      </aside>
     </>
   )
-} 
+}

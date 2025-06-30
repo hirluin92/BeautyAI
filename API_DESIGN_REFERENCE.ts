@@ -55,7 +55,6 @@ interface Organization {
 interface User {
   id: string;
   organizationId: string;
-  email: string;
   fullName: string;
   role: 'owner' | 'staff' | 'admin';
   phone?: string;
@@ -205,7 +204,6 @@ interface UserEndpoints {
   // POST /api/users
   create: {
     body: {
-      email: string;
       fullName: string;
       role: 'owner' | 'staff';
       phone?: string;

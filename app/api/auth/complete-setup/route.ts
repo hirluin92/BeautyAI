@@ -1,4 +1,4 @@
-// app/api/auth/complete-setup/route.ts - VERSIONE CORRETTA JSON
+// app/api/auth/complete-setup/route.ts - VERSIONE SENZA EMAIL
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   try {
     console.log('🚀 Complete Setup API - Starting...')
     
-    // Parse JSON body invece di FormData
+    // Parse JSON body
     const { fullName, organizationName } = await request.json()
     
     if (!fullName || !organizationName) {
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
     console.log('✅ User authenticated:', user.id)
 
-    // Verifica se l'utente esiste già
+    // Verifica se l'utente esiste già (SENZA EMAIL)
     const { data: existingUser } = await supabase
       .from('users')
       .select('id, organization_id')
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         message: 'Setup già completato',
-        redirect: '/dashboard/dashboard'
+        redirect: '/dashboard'
       })
     }
 
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
         .insert({
           name: organizationName,
           slug: orgSlug,
-          email: user.email,
+          email: user.email, // Email viene da auth.users
           plan_type: 'free',
           client_count: 0
         })
@@ -76,12 +76,12 @@ export async function POST(request: Request) {
 
       console.log('✅ Organization created:', org.id)
 
-      // 2. Crea/aggiorna utente
+      // 2. Crea/aggiorna utente (SENZA EMAIL nella tabella users)
       const { error: userError } = await supabase
         .from('users')
         .upsert({
           id: user.id,
-          email: user.email!,
+          // email: RIMOSSA - è già in auth.users
           full_name: fullName,
           organization_id: org.id,
           role: 'owner',
@@ -125,7 +125,7 @@ export async function POST(request: Request) {
           organization: org,
           user: {
             id: user.id,
-            email: user.email,
+            email: user.email, // Da auth.users
             full_name: fullName,
             organization_id: org.id,
             role: 'owner'

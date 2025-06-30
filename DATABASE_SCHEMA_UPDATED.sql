@@ -47,7 +47,6 @@ CREATE TABLE IF NOT EXISTS organizations (
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE, -- Links to Supabase Auth
     organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
-    email VARCHAR(255) UNIQUE NOT NULL,
     full_name VARCHAR(255) NOT NULL,
     role user_role DEFAULT 'staff',
     phone VARCHAR(20),

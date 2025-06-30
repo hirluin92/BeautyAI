@@ -1,7 +1,7 @@
 // app/page.tsx
 'use client'
 
-import BeautyAILanding from '@/components/landing/beautyAILanding'
+import BeautyAILanding from '@/components/landing/BeautyAILanding'
 
 export default function HomePage() {
   return <BeautyAILanding />

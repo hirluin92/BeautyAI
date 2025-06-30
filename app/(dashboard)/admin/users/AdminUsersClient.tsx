@@ -12,7 +12,6 @@ import { toast } from 'sonner'
 
 interface User {
   id: string
-  email: string
   role: string
   is_active: boolean
   created_at: string
@@ -26,7 +25,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
   const [users, setUsers] = useState<User[]>(initialUsers)
   const [showModal, setShowModal] = useState(false)
   const [modalUser, setModalUser] = useState<User | null>(null)
-  const [form, setForm] = useState({ email: '', role: 'staff' })
+  const [form, setForm] = useState({ role: 'staff' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -36,7 +35,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
   async function loadUsers() {
     try {
       const supabase = createClient()
-      const { data, error } = await supabase.from('users').select('id, email, role, is_active, created_at')
+      const { data, error } = await supabase.from('users').select('id, role, is_active, created_at')
       if (error) throw error
       setUsers(data || [])
     } catch (err: unknown) {
@@ -47,13 +46,13 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
 
   function openAddModal() {
     setModalUser(null)
-    setForm({ email: '', role: 'staff' })
+    setForm({ role: 'staff' })
     setShowModal(true)
   }
 
   function openEditModal(user: User) {
     setModalUser(user)
-    setForm({ email: user.email, role: user.role })
+    setForm({ role: user.role })
     setShowModal(true)
   }
 
@@ -69,9 +68,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
         toast.success('Ruolo utente aggiornato')
       } else {
         // Invio invito (placeholder, implementare invio reale)
-        const { error } = await supabase.from('users').insert([{ email: form.email, role: form.role, is_active: true }])
-        if (error) throw error
-        toast.success('Nuovo utente aggiunto')
+        toast.error('Aggiunta utente non supportata. Usa la registrazione standard.')
       }
       setShowModal(false)
       loadUsers()
@@ -123,7 +120,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
 
   // Filtraggio utenti
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.email.toLowerCase().includes(search.toLowerCase())
+    const matchesSearch = user.id.toLowerCase().includes(search.toLowerCase())
     const matchesRole = filterRole === 'all' || user.role === filterRole
     const matchesStatus = filterStatus === 'all' || (filterStatus === 'active' ? user.is_active : !user.is_active)
     return matchesSearch && matchesRole && matchesStatus
@@ -151,11 +148,11 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
               <div className="flex flex-col md:flex-row md:items-center gap-2 mb-4">
                 <Input
                   type="text"
-                  placeholder="Cerca per email..."
+                  placeholder="Cerca per ID..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   className="w-full md:w-64"
-                  aria-label="Cerca per email"
+                  aria-label="Cerca per ID"
                 />
                 <select
                   value={filterRole}
@@ -181,7 +178,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
               <table className="min-w-full text-sm md:text-base border rounded-lg overflow-hidden">
                 <thead>
                   <tr className="border-b bg-gray-50">
-                    <th className="px-2 py-2 md:px-4 md:py-2 text-left">Email</th>
+                    <th className="px-2 py-2 md:px-4 md:py-2 text-left">ID</th>
                     <th className="px-2 py-2 md:px-4 md:py-2 text-left">Ruolo</th>
                     <th className="px-2 py-2 md:px-4 md:py-2 text-left">Stato</th>
                     <th className="px-2 py-2 md:px-4 md:py-2 text-left">Creato il</th>
@@ -191,7 +188,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                 <tbody>
                   {filteredUsers.map((user) => (
                     <tr key={user.id} className="border-b hover:bg-gray-50 focus-within:bg-indigo-50">
-                      <td className="px-2 py-2 md:px-4 md:py-2 break-all">{user.email}</td>
+                      <td className="px-2 py-2 md:px-4 md:py-2 break-all">{user.id}</td>
                       <td className="px-2 py-2 md:px-4 md:py-2">
                         <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
                           {user.role === 'admin' ? 'Admin' : 'Staff'}
@@ -206,35 +203,15 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
                         {new Date(user.created_at).toLocaleDateString('it-IT')}
                       </td>
                       <td className="px-2 py-2 md:px-4 md:py-2">
-                        <div className="flex items-center gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openEditModal(user)}
-                            disabled={saving}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleToggleActive(user)}
-                            disabled={saving}
-                            className="h-8 w-8 p-0"
-                          >
-                            {user.is_active ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDelete(user)}
-                            disabled={saving}
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
+                        <Button size="sm" variant="outline" onClick={() => openEditModal(user)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleDelete(user)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleToggleActive(user)}>
+                          {user.is_active ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -257,18 +234,6 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
         title={modalUser ? 'Modifica Utente' : 'Nuovo Utente'}
       >
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <Input
-              type="email"
-              value={form.email}
-              onChange={e => setForm({ ...form, email: e.target.value })}
-              disabled={!!modalUser}
-              placeholder="email@example.com"
-            />
-          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Ruolo
@@ -295,7 +260,7 @@ export default function AdminUsersClient({ users: initialUsers }: AdminUsersClie
             </Button>
             <Button
               onClick={handleSave}
-              disabled={saving || !form.email}
+              disabled={saving || !form.role}
               className="flex items-center gap-2"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
