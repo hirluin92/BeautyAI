@@ -3,12 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import CalendarView from '@/components/calendar/calendar-view'
-import CalendarFilters from '@/components/calendar/calendar-filters'
-import { useCalendarFilters } from '@/hooks/useCalendarFilters'
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { Database } from '@/types/database'
-import { Booking } from '@/components/calendar/calendar-view'
 
 type BookingWithRelations = Database['public']['Tables']['bookings']['Row'] & {
   client: Database['public']['Tables']['clients']['Row'] | null
@@ -30,13 +27,39 @@ interface CalendarClientProps {
   }
 }
 
+// Booking interface that matches the new calendar component
+interface Booking {
+  id: string
+  start_at: string
+  end_at: string
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
+  price: number
+  notes?: string
+  client: {
+    id: string
+    full_name: string
+    phone?: string
+    email?: string
+  }
+  service: {
+    id: string
+    name: string
+    duration_minutes: number
+    price: number
+  }
+  staff?: {
+    id: string
+    full_name: string
+    email?: string
+  }
+}
+
 export default function CalendarClient({ initialData }: CalendarClientProps) {
   const supabase = createClient()
   
   const [bookings, setBookings] = useState<BookingWithRelations[]>(initialData.bookings)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [currentUser] = useState<User>(initialData.currentUser)
   
   const [currentDate, setCurrentDate] = useState(new Date())
   const [viewType, setViewType] = useState<'week' | 'month' | 'day'>('week')
@@ -48,11 +71,14 @@ export default function CalendarClient({ initialData }: CalendarClientProps) {
       id: booking.id,
       start_at: booking.start_at,
       end_at: booking.end_at,
-      status: booking.status,
+      status: booking.status as 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show',
+      price: booking.price || 0,
+      notes: booking.notes || undefined,
       client: {
         id: booking.client!.id,
         full_name: booking.client!.full_name,
-        phone: booking.client!.phone
+        phone: booking.client!.phone || undefined,
+        email: booking.client!.email || undefined
       },
       service: {
         id: booking.service!.id,
@@ -62,21 +88,10 @@ export default function CalendarClient({ initialData }: CalendarClientProps) {
       },
       staff: booking.staff ? {
         id: booking.staff.id,
-        full_name: booking.staff.full_name
+        full_name: booking.staff.full_name,
+        email: booking.staff.email || undefined
       } : undefined
     }))
-
-  // Use calendar filters hook
-  const {
-    filters,
-    filteredBookings,
-    updateFilter,
-    resetFilters,
-    getActiveFiltersCount
-  } = useCalendarFilters({
-    bookings: validBookings,
-    currentUserId: currentUser?.id
-  })
 
   const loadData = useCallback(async () => {
     try {
@@ -93,8 +108,10 @@ export default function CalendarClient({ initialData }: CalendarClientProps) {
         startDate = startOfMonth(currentDate)
         endDate = endOfMonth(currentDate)
       } else {
-        startDate = currentDate
-        endDate = currentDate
+        startDate = new Date(currentDate)
+        startDate.setHours(0, 0, 0, 0)
+        endDate = new Date(currentDate)
+        endDate.setHours(23, 59, 59, 999)
       }
 
       // Load bookings with staff info
@@ -102,9 +119,9 @@ export default function CalendarClient({ initialData }: CalendarClientProps) {
         .from('bookings')
         .select(`
           *,
-          client:clients(id, full_name, phone),
+          client:clients(id, full_name, phone, email),
           service:services(id, name, duration_minutes, price),
-          staff:staff(id, full_name)
+          staff:staff(id, full_name, email)
         `)
         .eq('organization_id', initialData.organizationId)
         .gte('start_at', startDate.toISOString())
@@ -158,20 +175,26 @@ export default function CalendarClient({ initialData }: CalendarClientProps) {
   }
 
   const refreshBookings = () => {
-    // Trigger a reload of the current data
-    setCurrentDate(new Date(currentDate))
+    loadData()
   }
 
-  const handleFilterChange = (key: string, value: unknown) => {
-    updateFilter(key as keyof typeof filters, value as string | { start: Date | null; end: Date | null })
-  }
+  // Optimistic update handler for better UX
+  const handleOptimisticBookingUpdate = useCallback((bookingId: string, newStart: string, newEnd: string) => {
+    setBookings(prevBookings => 
+      prevBookings.map(booking => 
+        booking.id === bookingId 
+          ? { ...booking, start_at: newStart, end_at: newEnd }
+          : booking
+      )
+    )
+  }, [])
 
-  if (loading) {
+  if (loading && bookings.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Caricamento calendario...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto"></div>
+          <p className="mt-4 text-slate-600 font-medium">Caricamento calendario...</p>
         </div>
       </div>
     )
@@ -179,47 +202,40 @@ export default function CalendarClient({ initialData }: CalendarClientProps) {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600"
-          >
-            Riprova
-          </button>
+          <div className="bg-white rounded-2xl p-8 shadow-lg border border-red-200">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Errore</h3>
+            <p className="text-red-600 mb-6">{error}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-medium hover:shadow-lg hover:scale-105 transition-all duration-300"
+            >
+              Riprova
+            </button>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Advanced Filters */}
-      <div className="container mx-auto px-4 py-6">
-        <CalendarFilters
-          services={initialData.services}
-          staff={initialData.staff}
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          onResetFilters={resetFilters}
-          activeFiltersCount={getActiveFiltersCount()}
-          currentUser={currentUser}
-        />
-      </div>
-
-      {/* Calendar View */}
-      <CalendarView
-        bookings={filteredBookings}
-        services={initialData.services}
-        staff={initialData.staff}
-        viewType={viewType}
-        currentDate={currentDate}
-        onNavigate={handleNavigate}
-        onChangeView={handleChangeView}
-        setCurrentDate={setCurrentDate}
-        refreshBookings={refreshBookings}
-      />
-    </div>
+    <CalendarView
+      bookings={validBookings}
+      services={initialData.services}
+      staff={initialData.staff}
+      viewType={viewType}
+      currentDate={currentDate}
+      onNavigate={handleNavigate}
+      onChangeView={handleChangeView}
+      setCurrentDate={setCurrentDate}
+      refreshBookings={refreshBookings}
+      onOptimisticBookingUpdate={handleOptimisticBookingUpdate}
+    />
   )
-} 
+}
