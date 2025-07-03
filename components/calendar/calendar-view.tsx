@@ -79,7 +79,8 @@ const CALENDAR_CONFIG = {
   CLICK_MAX_DURATION_MS: 200,
   BUFFER_MINUTES: 0,
   MOBILE_HOUR_HEIGHT: 100,
-  COMPACT_HOUR_HEIGHT: 80
+  COMPACT_HOUR_HEIGHT: 80,
+  MIN_EVENT_HEIGHT: 40
 } as const
 
 // Dashboard-coherent colors - subtle and elegant glassmorphism style
@@ -304,12 +305,11 @@ function CalendarEvent({
     const startMinutes = startDate.getHours() * 60 + startDate.getMinutes()
     const endMinutes = endDate.getHours() * 60 + endDate.getMinutes()
     const workStartMinutes = CALENDAR_CONFIG.START_HOUR * 60
-
-    const top = Math.max(0, (startMinutes - workStartMinutes) / minutesPerPixel)
-    const height = Math.max(isMobile ? 35 : 40, (endMinutes - startMinutes) / minutesPerPixel)
-
+    const durationMinutes = endMinutes - startMinutes
+    const top = ((startMinutes - workStartMinutes) / 60) * hourHeight
+    const height = Math.max((durationMinutes / 60) * hourHeight, CALENDAR_CONFIG.MIN_EVENT_HEIGHT || 40)
     return { top, height }
-  }, [startDate, endDate, minutesPerPixel, isMobile])
+  }, [startDate, endDate, hourHeight, booking.id])
 
   const pixelsToTime = useCallback((pixels: number) => {
     const totalMinutes = Math.round(pixels * minutesPerPixel)
@@ -580,8 +580,8 @@ function CalendarEvent({
     <>
       <div
         ref={eventRef}
-        className={`absolute left-1 right-1 rounded-xl cursor-pointer select-none transition-all duration-200 hover:scale-[1.02] group ${getStatusColor(booking.status)} ${serviceColor.glow} ${
-          isDragging || isResizing ? 'scale-105 shadow-2xl' : 'shadow-lg hover:shadow-xl'
+        className={`absolute left-1 right-1 rounded-xl cursor-pointer select-none transition-all duration-200 group ${getStatusColor(booking.status)} ${serviceColor.glow} ${
+          isDragging || isResizing ? 'scale-105 shadow-2xl z-50' : 'shadow-lg'
         }`}
         style={{
           top: `${top}px`,
@@ -592,17 +592,21 @@ function CalendarEvent({
         onMouseDown={handleDragStart}
         onClick={handleClick}
       >
-        {/* Resize handle top */}
-        {!isMobile && (
+        {/* FIX: Resize handle TOP - Più visibile e funzionale */}
+        {!isMobile && height >= 60 && (
           <div
-            className="absolute top-0 left-0 right-0 h-3 cursor-ns-resize group-hover:bg-white/20 transition-colors rounded-t-xl"
-            onMouseDown={(e) => handleResizeStart('top', e)}
+            className="absolute top-0 left-0 right-0 h-4 cursor-ns-resize z-20 hover:bg-white/30 transition-all duration-200 flex items-center justify-center rounded-t-xl"
+            onMouseDown={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              handleResizeStart('top', e)
+            }}
           >
-            <div className="absolute inset-x-0 top-0 h-1 bg-white/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-t-xl" />
+            <div className="w-6 h-1 bg-white/60 rounded-full group-hover:bg-white/90 transition-all duration-200" />
           </div>
         )}
         
-        {/* Content area - LAYOUT COMPLETO */}
+        {/* Content area */}
         <div className="px-3 py-2 h-full flex flex-col justify-center pointer-events-none overflow-hidden">
           {height >= (isMobile ? 50 : 60) ? (
             <div className="w-full space-y-1">
@@ -615,33 +619,26 @@ function CalendarEvent({
                   €{booking.price}
                 </div>
               </div>
-              
               <div className="font-bold text-base text-white truncate">
                 {booking.client.full_name}
               </div>
-              
               <div className="text-xs text-white/80 truncate bg-white/10 px-2 py-1 rounded-lg">
                 {booking.service.name}
               </div>
-              
-              {height >= (isMobile ? 80 : 100) && booking.staff && (
+              {/* FIX: Mostra durata effettiva */}
+              {height >= (isMobile ? 80 : 100) && (
+                <div className="text-xs text-white/70 flex items-center gap-2">
+                  <Clock className="w-3 h-3" />
+                  <span>
+                    {format(startDate, 'HH:mm')} - {format(endDate, 'HH:mm')} 
+                    ({formatDuration(durationMinutes)})
+                  </span>
+                </div>
+              )}
+              {height >= (isMobile ? 100 : 120) && booking.staff && (
                 <div className="text-xs text-white/70 truncate flex items-center gap-1">
                   <User className="w-3 h-3" />
                   {booking.staff.full_name}
-                </div>
-              )}
-              
-              {height >= (isMobile ? 100 : 120) && booking.client.phone && (
-                <div className="text-xs text-white/70 truncate flex items-center gap-1">
-                  <Phone className="w-3 h-3" />
-                  {booking.client.phone}
-                </div>
-              )}
-              
-              {height >= (isMobile ? 120 : 140) && (
-                <div className="text-xs text-white/70 flex items-center gap-2">
-                  <Clock className="w-3 h-3" />
-                  <span>{formatDuration(durationMinutes)}</span>
                 </div>
               )}
             </div>
@@ -659,6 +656,9 @@ function CalendarEvent({
               <div className="font-medium text-sm text-white truncate">
                 {booking.client.full_name}
               </div>
+              <div className="text-xs text-white/70">
+                {format(endDate, 'HH:mm')} • {formatDuration(durationMinutes)}
+              </div>
             </div>
           ) : (
             <div className="flex items-center space-x-2 w-full min-w-0">
@@ -672,19 +672,23 @@ function CalendarEvent({
               <div 
                 className="w-3 h-3 rounded-full flex-shrink-0 ring-2 ring-white/40" 
                 style={{ backgroundColor: serviceColor.accent }}
-                title={booking.service.name}
+                title={`${booking.service.name} - ${format(endDate, 'HH:mm')}`}
               />
             </div>
           )}
         </div>
         
-        {/* Resize handle bottom */}
-        {!isMobile && (
+        {/* FIX: Resize handle BOTTOM - Più visibile e funzionale */}
+        {!isMobile && height >= 60 && (
           <div
-            className="absolute bottom-0 left-0 right-0 h-3 cursor-ns-resize group-hover:bg-white/20 transition-colors rounded-b-xl"
-            onMouseDown={(e) => handleResizeStart('bottom', e)}
+            className="absolute bottom-0 left-0 right-0 h-4 cursor-ns-resize z-20 hover:bg-white/30 transition-all duration-200 flex items-center justify-center rounded-b-xl"
+            onMouseDown={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              handleResizeStart('bottom', e)
+            }}
           >
-            <div className="absolute inset-x-0 bottom-0 h-1 bg-white/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-b-xl" />
+            <div className="w-6 h-1 bg-white/60 rounded-full group-hover:bg-white/90 transition-all duration-200" />
           </div>
         )}
 

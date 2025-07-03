@@ -33,9 +33,9 @@ export default function DashboardLayout({
         {/* Main Content */}
         <main className="flex-1 ml-0 md:ml-64 transition-all duration-300">
           {isCalendarPage ? (
-            // Calendario con padding ridotto per avere più spazio
-            <div className="h-screen p-2">
-              <div className="h-full rounded-2xl overflow-hidden calendar-container-wrapper">
+            // CALENDAR FIX: Rimuovo h-screen e overflow-hidden, aggiungo overflow-auto
+            <div className="min-h-screen p-2">
+              <div className="min-h-full rounded-2xl overflow-auto calendar-container-wrapper">
                 {children}
               </div>
             </div>
@@ -55,14 +55,36 @@ export default function DashboardLayout({
         <style jsx global>{`
           .calendar-container-wrapper {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            /* Stili scroll migliorati */
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
+          }
+          
+          .calendar-container-wrapper::-webkit-scrollbar {
+            width: 8px;
+          }
+          
+          .calendar-container-wrapper::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+          }
+          
+          .calendar-container-wrapper::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+          }
+          
+          .calendar-container-wrapper::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
           }
           
           /* Migliore leggibilità per il calendario */
-          .calendar-container-wrapper .text-white\\/70 {
+          .calendar-container-wrapper .text-white\/70 {
             color: rgba(255, 255, 255, 0.9) !important;
           }
           
-          .calendar-container-wrapper .text-white\\/80 {
+          .calendar-container-wrapper .text-white\/80 {
             color: rgba(255, 255, 255, 0.95) !important;
           }
         `}</style>
