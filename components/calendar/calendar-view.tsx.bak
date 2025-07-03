@@ -253,7 +253,7 @@ interface CalendarEventProps {
   booking: Booking
   onUpdate: (bookingId: string, newStart: Date, newEnd: Date) => Promise<void>
   onClick: (id: string) => void
-  dayContainerRef: React.RefObject<HTMLDivElement>
+  dayContainerRef: React.RefObject<HTMLDivElement | null>
   allBookings: Booking[]
   isMobile: boolean
   hourHeight: number
@@ -798,7 +798,7 @@ function WeekView({
   }, [onUpdate])
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Week days header */}
       <div className="bg-white/10 backdrop-blur-sm border-b border-white/20 px-6 py-3">
         <div className="grid grid-cols-8 gap-4">
@@ -859,7 +859,7 @@ function WeekView({
           {weekDays.map((day) => {
             const dayKey = format(day, 'yyyy-MM-dd')
             if (!dayRefs.current[dayKey]) {
-              dayRefs.current[dayKey] = React.createRef() as React.RefObject<HTMLDivElement>
+              dayRefs.current[dayKey] = React.createRef()
             }
             
             const dayBookings = getBookingsForDay(day)
@@ -1040,7 +1040,7 @@ function DayView({
   hourHeight: number
 }) {
   const workingHours = Array.from({ length: CALENDAR_CONFIG.END_HOUR - CALENDAR_CONFIG.START_HOUR }, (_, i) => CALENDAR_CONFIG.START_HOUR + i)
-  const dayRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>
+  const dayRef = useRef<HTMLDivElement>(null)
 
   const dayBookings = useMemo(() => {
     const dayStart = startOfDay(currentDate)
@@ -1169,7 +1169,7 @@ export default function CalendarView({
   const [selectedStaff, setSelectedStaff] = useState<string>('')
   const [showFilters, setShowFilters] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const dayRefs = useRef<{ [key: string]: React.RefObject<HTMLDivElement> }>({})
+  const dayRefs = useRef<{ [key: string]: React.RefObject<HTMLDivElement | null> }>({})
   const { currentUser, loading: userLoading } = useCurrentUser()
   
   const [showOnlyMyBookings, setShowOnlyMyBookings] = useState(false)

@@ -1,8 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@200;300;400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@200;300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
 
+/* ==================== CSS VARIABLES ==================== */
 :root {
   --primary: oklch(0.208 0.042 265.755);
   --primary-foreground: oklch(0.984 0.003 247.858);
@@ -37,6 +38,34 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.704 0.04 256.788);
+
+  /* Neural Color System */
+  --neural-primary: #1a1a2e;
+  --neural-secondary: #16213e;
+  --neural-accent: #0f3460;
+  --neural-surface: #162447;
+  
+  /* Quantum Gradients */
+  --quantum-purple: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  --quantum-blue: linear-gradient(135deg, #4facfe 0%, #00f2fe 50%, #43e97b 100%);
+  --quantum-pink: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
+  --quantum-green: linear-gradient(135deg, #43e97b 0%, #38f9d7 50%, #667eea 100%);
+  --quantum-gold: linear-gradient(135deg, #f6d365 0%, #fda085 50%, #fd746c 100%);
+  
+  /* Neural Network Colors */
+  --node-color: #00d4ff;
+  --connection-color: rgba(0, 212, 255, 0.3);
+  --pulse-color: #ff0080;
+  
+  /* Typography */
+  --font-neural: 'JetBrains Mono', 'Courier New', monospace;
+  --font-ui: 'Inter', sans-serif;
+  
+  /* Effects */
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --neural-glow: 0 0 30px rgba(0, 212, 255, 0.5);
+  --quantum-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -55,64 +84,53 @@
   }
 }
 
-/* === Font di default === */
+/* ==================== FONTS ==================== */
 html, body, .font-sans {
-  font-family: 'DM Sans', Arial, Helvetica, sans-serif;
-  font-weight: 300;
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  font-weight: 400;
 }
 
-/* === Sfondo chiaro per l'applicazione === */
-/* body {
-  background: #f8fafc !important; 
-  color: #1e293b;
-} */
-
-/* === Sfondo radiale e sfumato stile Canva (più luminoso) === */
 body {
   background-color: #000;
 }
-/* === Fine sfondo radiale Canva === */
 
-/* === Beauty AI Dashboard Animations === */
+/* ==================== ANIMATIONS ==================== */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(139, 92, 246, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.8);
+  }
+}
 
 @keyframes rainbowShift {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
-}
-.animate-rainbowShift {
-  animation: rainbowShift 4s ease-in-out infinite;
-  background-size: 600% 600%;
-}
-
-@keyframes underlineGlow {
-  0%, 100% { width: 400px; opacity: 0.8; box-shadow: 0 0 20px rgba(0,212,255,0.5); }
-  50% { width: 600px; opacity: 1; box-shadow: 0 0 40px rgba(0,212,255,0.8); }
-}
-.animate-underlineGlow {
-  animation: underlineGlow 2.5s ease-in-out infinite;
 }
 
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(40px); }
   to { opacity: 1; transform: none; }
 }
-.animate-fadeInUp {
-  animation: fadeInUp 1.2s cubic-bezier(0.23, 1, 0.32, 1) both;
-}
-
-/* === Fine Animazioni Dashboard === */
-
-/* === Animazioni Header Beauty AI Dashboard === */
 
 @keyframes notificationPulse {
   0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239,68,68,0.7); }
   50% { transform: scale(1.2); box-shadow: 0 0 0 10px rgba(239,68,68,0); }
 }
-.animate-notificationPulse {
-  animation: notificationPulse 1.5s infinite;
+
+@keyframes iconFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
 }
 
-/* Glassmorphism gold per bottone "Diventa Leggenda" */
+.pulse-glow { animation: pulseGlow 2s infinite; }
+.animate-rainbowShift { animation: rainbowShift 4s ease-in-out infinite; background-size: 600% 600%; }
+.animate-fadeInUp { animation: fadeInUp 1.2s cubic-bezier(0.23, 1, 0.32, 1) both; }
+.animate-notificationPulse { animation: notificationPulse 1.5s infinite; }
+.animate-iconFloat { animation: iconFloat 2.5s ease-in-out infinite; }
+
+/* ==================== GLASSMORPHISM EFFECTS ==================== */
 .glassmorphism-gold {
   background: linear-gradient(90deg, #fde047 0%, #fbbf24 40%, #ea580c 70%, #92400e 100%);
   box-shadow: 0 4px 32px 0 rgba(251,191,36,0.15), 0 1.5px 8px 0 rgba(0,0,0,0.08);
@@ -121,242 +139,1772 @@ body {
   color: #1a1a1a;
 }
 
-/* === Fine Animazioni Header === */
-
-/* === Glassmorphism per Quick Actions === */
 .glassmorphism-action-button {
   @apply px-10 py-5 rounded-full text-white shadow-lg border border-white/20 backdrop-blur-[30px] bg-white/10 transition-all duration-300 hover:bg-white/20 hover:scale-105;
   font-weight: 600;
 }
-/* === Fine Glassmorphism Quick Actions === */
 
-/* === Glassmorphism per Search Bar === */
 .glassmorphism-search {
   @apply bg-white/10 backdrop-blur-[30px];
 }
-/* === Fine Glassmorphism Search Bar === */
 
-/* === Glassmorphism per Stat Cards === */
 .glassmorphism-stat-card {
   @apply bg-white/10 backdrop-blur-[30px] border border-white/20 rounded-[30px] p-12 shadow-lg;
 }
-/* === Fine Glassmorphism Stat Cards === */
 
-/* === Animazione per icone stats === */
-@keyframes iconFloat {
+.glassmorphism-feature-card {
+  @apply bg-white/5 backdrop-blur-[20px] border border-white/10 rounded-[25px] p-8 shadow-lg;
+}
+
+/* ==================== CALENDAR MODERN DESIGN ==================== */
+
+/* Calendar Container - Better Background */
+.calendar-container-wrapper {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #2563eb 100%) !important;
+  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Calendar Text Contrast Improvements */
+[data-calendar-container] .text-white\/70 {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+[data-calendar-container] .text-white\/80 {
+  color: rgba(255, 255, 255, 0.98) !important;
+}
+
+[data-calendar-container] .text-white\/90 {
+  color: rgba(255, 255, 255, 1) !important;
+}
+
+/* Calendar Header Improvements */
+[data-calendar-container] .bg-white\/10 {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+
+/* Calendar Grid Improvements */
+[data-calendar-container] .bg-white\/5 {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Border Improvements */
+[data-calendar-container] .border-white\/10 {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-calendar-container] .border-white\/20 {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Hover Effects */
+[data-calendar-container] .hover\:bg-white\/10:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-calendar-container] .hover\:bg-white\/20:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* Event Cards - Better Visibility */
+[data-calendar-container] [data-booking-id] {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+[data-calendar-container] [data-booking-id]:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Gradient Event Backgrounds - Higher Contrast */
+.bg-gradient-to-br.from-violet-600.to-purple-700 {
+  background: linear-gradient(135deg, #7c3aed, #6b21a8) !important;
+}
+
+.bg-gradient-to-br.from-blue-600.to-cyan-700 {
+  background: linear-gradient(135deg, #2563eb, #0891b2) !important;
+}
+
+.bg-gradient-to-br.from-emerald-600.to-teal-700 {
+  background: linear-gradient(135deg, #059669, #0f766e) !important;
+}
+
+.bg-gradient-to-br.from-pink-600.to-rose-700 {
+  background: linear-gradient(135deg, #db2777, #be185d) !important;
+}
+
+.bg-gradient-to-br.from-amber-600.to-orange-700 {
+  background: linear-gradient(135deg, #d97706, #c2410c) !important;
+}
+
+.bg-gradient-to-br.from-indigo-600.to-blue-700 {
+  background: linear-gradient(135deg, #4f46e5, #1d4ed8) !important;
+}
+
+.bg-gradient-to-br.from-red-600.to-pink-700 {
+  background: linear-gradient(135deg, #dc2626, #be185d) !important;
+}
+
+.bg-gradient-to-br.from-green-600.to-emerald-700 {
+  background: linear-gradient(135deg, #16a34a, #047857) !important;
+}
+
+/* Input Styling */
+[data-calendar-container] input {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  color: white !important;
+}
+
+[data-calendar-container] input::placeholder {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+[data-calendar-container] input:focus {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  ring-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Select Styling */
+[data-calendar-container] select {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  color: white !important;
+}
+
+[data-calendar-container] select option {
+  background: rgba(30, 30, 30, 0.95) !important;
+  color: white !important;
+}
+
+/* Button Improvements */
+[data-calendar-container] button {
+  font-weight: 500 !important;
+}
+
+/* Scrollbar Styling */
+[data-calendar-container] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-calendar-container] ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+[data-calendar-container] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-calendar-container] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Current Time Line */
+[data-calendar-container] .bg-red-500 {
+  background: linear-gradient(90deg, #ef4444, #dc2626) !important;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.8) !important;
+}
+
+/* Responsive Text Sizing */
+@media (max-width: 768px) {
+  [data-calendar-container] h1 {
+    font-size: 1.25rem !important;
+  }
+  
+  [data-calendar-container] .text-xl {
+    font-size: 1.125rem !important;
+  }
+  
+  [data-calendar-container] .text-lg {
+    font-size: 1rem !important;
+  }
+}
+
+/* Quantum Extensions */
+@layer utilities {
+  .neural-glow {
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+  }
+  .quantum-shadow {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+  .glass-bg {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+  }
+  .neural-pulse {
+    animation: neural-pulse 3s ease-in-out infinite;
+  }
+  @keyframes neural-pulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+  }
+  @keyframes quantum-scan {
+    0% { left: -100%; opacity: 0; }
+    50% { opacity: 1; }
+    100% { left: 100%; opacity: 0; }
+  }
+  .quantum-scan {
+    animation: quantum-scan 3s ease-in-out infinite;
+  }
+}
+
+/* ==========================================
+   QUANTUM CALENDAR STYLES - VERSIONE COMPLETA
+   Aggiungi questo CSS alla fine di app/globals.css
+   ========================================== */
+
+/* Quantum App Container */
+.quantum-app {
+  font-family: var(--font-ui);
+  background: var(--neural-primary);
+  color: #ffffff;
+  overflow-x: hidden;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Loading State */
+.quantum-loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--neural-primary);
+}
+
+.loading-container {
+  text-align: center;
+  z-index: 10;
+}
+
+.quantum-spinner {
+  width: 60px;
+  height: 60px;
+  border: 3px solid rgba(0, 212, 255, 0.3);
+  border-top: 3px solid var(--node-color);
+  border-radius: 50%;
+  animation: quantumSpin 1s linear infinite;
+  margin: 0 auto 2rem;
+}
+
+@keyframes quantumSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-family: var(--font-neural);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--node-color);
+  margin-bottom: 0.5rem;
+  letter-spacing: 2px;
+}
+
+.loading-subtext {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: var(--font-neural);
+}
+
+/* Neural Network Background */
+.neural-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  background: radial-gradient(ellipse at center, var(--neural-primary) 0%, #000 100%);
+}
+
+.neural-network {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.neural-node {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--node-color);
+  border-radius: 50%;
+  animation: neuralPulse 3s ease-in-out infinite;
+  box-shadow: 0 0 10px var(--node-color);
+}
+
+.neural-connection {
+  position: absolute;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--connection-color), transparent);
+  transform-origin: left center;
+  animation: dataFlow 4s linear infinite;
+}
+
+@keyframes neuralPulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.5); }
+}
+
+@keyframes dataFlow {
+  0% { opacity: 0; transform: scaleX(0); }
+  50% { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(0); }
+}
+
+/* Quantum Particles */
+.quantum-particles {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: var(--pulse-color);
+  border-radius: 50%;
+  animation: quantumFloat 8s linear infinite;
+}
+
+@keyframes quantumFloat {
+  0% { 
+    transform: translateY(100vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { 
+    transform: translateY(-10vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Revolutionary Header */
+.quantum-header {
+  background: var(--glass-bg);
+  backdrop-filter: blur(25px) saturate(200%);
+  border: 1px solid var(--glass-border);
+  border-radius: 25px;
+  padding: 2rem 3rem;
+  margin: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--quantum-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.quantum-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: var(--quantum-purple);
+  animation: quantumScan 3s ease-in-out infinite;
+}
+
+@keyframes quantumScan {
+  0% { left: -100%; opacity: 0; }
+  50% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+.quantum-brand {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.neural-logo {
+  width: 60px;
+  height: 60px;
+  background: var(--quantum-purple);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 900;
+  font-size: 1.5rem;
+  position: relative;
+  animation: logoQuantum 4s ease-in-out infinite;
+}
+
+.neural-logo::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: var(--quantum-purple);
+  border-radius: 20px;
+  z-index: -1;
+  filter: blur(8px);
+  opacity: 0.7;
+  animation: logoGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes logoQuantum {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(-5deg) scale(1.05); }
+  75% { transform: rotate(5deg) scale(1.05); }
+}
+
+@keyframes logoGlow {
+  0% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.quantum-title {
+  font-size: 2.5rem;
+  font-weight: 900;
+  background: var(--quantum-purple);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+}
+
+.neural-status {
+  font-family: var(--font-neural);
+  font-size: 0.8rem;
+  color: var(--node-color);
+  opacity: 0.8;
+  margin-top: 0.5rem;
+  animation: statusBlink 2s ease-in-out infinite;
+}
+
+@keyframes statusBlink {
+  0%, 90% { opacity: 0.8; }
+  95% { opacity: 0.3; }
+}
+
+.week-nav {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  background: var(--neural-surface);
+  padding: 1rem 2rem;
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+}
+
+.nav-btn {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--node-color);
+  cursor: pointer;
+  padding: 0.75rem;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.nav-btn:hover {
+  background: var(--quantum-purple);
+  color: white;
+  transform: scale(1.05);
+  box-shadow: var(--neural-glow);
+}
+
+.current-week {
+  font-weight: 800;
+  color: #ffffff;
+  font-size: 1.2rem;
+  font-family: var(--font-neural);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.view-toggle {
+  display: flex;
+  background: var(--neural-surface);
+  border-radius: 16px;
+  padding: 0.5rem;
+  border: 1px solid var(--glass-border);
+}
+
+.view-btn {
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  font-family: var(--font-neural);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+}
+
+.view-btn.active {
+  background: var(--quantum-purple);
+  color: white;
+  box-shadow: var(--neural-glow);
+}
+
+.view-btn:hover:not(.active) {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-quantum {
+  padding: 1rem 2rem;
+  background: var(--quantum-purple);
+  border: none;
+  border-radius: 16px;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-neural);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-quantum::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.6s ease;
+}
+
+.btn-quantum:hover::before {
+  left: 100%;
+}
+
+.btn-quantum:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: var(--neural-glow), var(--quantum-shadow);
+}
+
+/* AI Command Center */
+.ai-command-center {
+  background: var(--glass-bg);
+  backdrop-filter: blur(25px);
+  border: 1px solid var(--glass-border);
+  border-radius: 25px;
+  padding: 2.5rem;
+  margin: 0 2rem 2rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--neural-glow), var(--quantum-shadow);
+}
+
+.ai-command-center::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--quantum-blue);
+  opacity: 0.05;
+  border-radius: 25px;
+}
+
+.command-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.ai-brain {
+  width: 50px;
+  height: 50px;
+  background: var(--quantum-blue);
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  animation: brainThink 3s ease-in-out infinite;
+  position: relative;
+}
+
+.ai-brain::after {
+  content: '';
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border: 2px solid var(--node-color);
+  border-radius: 50%;
+  animation: brainScan 2s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes brainThink {
+  0%, 100% { transform: scale(1); filter: hue-rotate(0deg); }
+  50% { transform: scale(1.1); filter: hue-rotate(30deg); }
+}
+
+@keyframes brainScan {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { opacity: 0.6; }
+  100% { transform: scale(1.2); opacity: 0; }
+}
+
+.command-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 0 20px rgba(79, 172, 254, 0.8);
+  font-family: var(--font-neural);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.command-subtitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  font-family: var(--font-neural);
+}
+
+.neural-insights {
+  font-family: var(--font-neural);
+  font-size: 1rem;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1.5rem;
+  border-radius: 15px;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  position: relative;
+  transition: all 0.5s ease;
+}
+
+.neural-insights::before {
+  content: '>';
+  color: var(--node-color);
+  margin-right: 0.5rem;
+  animation: cursorBlink 1s infinite;
+}
+
+@keyframes cursorBlink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Quantum Metrics */
+.quantum-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+  margin: 0 2rem 2rem;
+}
+
+.metric-quantum {
+  background: var(--glass-bg);
+  backdrop-filter: blur(25px);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 2.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.5s ease;
+  cursor: pointer;
+}
+
+.metric-quantum::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--quantum-purple);
+  transform: scaleX(0);
+  transition: transform 0.5s ease;
+}
+
+.metric-quantum:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: var(--neural-glow), var(--quantum-shadow);
+}
+
+.metric-quantum:hover::before {
+  transform: scaleX(1);
+}
+
+.metric-hologram {
+  width: 70px;
+  height: 70px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin-bottom: 2rem;
+  position: relative;
+  animation: hologramFloat 3s ease-in-out infinite;
+}
+
+.metric-hologram.revenue { background: var(--quantum-green); }
+.metric-hologram.bookings { background: var(--quantum-blue); }
+.metric-hologram.efficiency { background: var(--quantum-gold); }
+.metric-hologram.satisfaction { background: var(--quantum-pink); }
+
+@keyframes hologramFloat {
   0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
+
+.metric-value {
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+  font-family: var(--font-neural);
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  animation: valueGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes valueGlow {
+  0% { text-shadow: 0 0 20px rgba(255, 255, 255, 0.5); }
+  100% { text-shadow: 0 0 30px rgba(255, 255, 255, 0.8); }
+}
+
+.metric-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.metric-change {
+  font-family: var(--font-neural);
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.9;
+  margin-top: 0.5rem;
+}
+
+.metric-change.quantum-green { color: #43e97b; }
+.metric-change.quantum-blue { color: #4facfe; }
+.metric-change.quantum-gold { color: #f6d365; }
+.metric-change.quantum-pink { color: #f093fb; }
+
+/* Revolutionary Calendar */
+.quantum-calendar {
+  background: var(--glass-bg);
+  backdrop-filter: blur(25px);
+  border: 1px solid var(--glass-border);
+  border-radius: 25px;
+  padding: 3rem;
+  margin: 0 2rem 2rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--quantum-shadow);
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.calendar-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #ffffff;
+  font-family: var(--font-neural);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
+}
+
+.neural-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.neural-btn {
+  padding: 0.8rem 1.5rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 15px;
+  color: var(--node-color);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: var(--font-neural);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.neural-btn:hover {
+  background: var(--quantum-blue);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+}
+
+.calendar-neural-grid {
+  display: grid;
+  grid-template-columns: 120px repeat(7, 1fr);
+  gap: 2px;
+  background: rgba(0, 212, 255, 0.1);
+  border-radius: 20px;
+  overflow: hidden;
+  padding: 2px;
+}
+
+.time-neural {
+  background: var(--neural-surface);
+  padding: 2rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--node-color);
+  font-family: var(--font-neural);
+  border-radius: 8px;
+  position: relative;
+}
+
+.day-quantum {
+  background: var(--neural-surface);
+  padding: 2rem;
+  text-align: center;
+  border-radius: 8px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.day-quantum.today {
+  background: var(--quantum-purple);
+  box-shadow: var(--neural-glow);
+  animation: todayPulse 3s ease-in-out infinite;
+}
+
+@keyframes todayPulse {
+  0%, 100% { box-shadow: var(--neural-glow); }
+  50% { box-shadow: 0 0 40px rgba(0, 212, 255, 0.8); }
+}
+
+.day-name {
+  font-weight: 800;
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.day-date {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  margin-bottom: 0.5rem;
+}
+
+.neural-status {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin-top: 0.3rem;
+  font-family: var(--font-neural);
+  text-transform: uppercase;
+}
+
+.day-quantum .neural-status {
+  color: var(--node-color);
+}
+
+.day-quantum.today .neural-status {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.calendar-quantum-cell {
+  background: var(--neural-primary);
+  min-height: 100px;
+  border-radius: 8px;
+  position: relative;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.calendar-quantum-cell:hover {
+  background: var(--neural-accent);
+  border-color: var(--node-color);
+  box-shadow: inset 0 0 20px rgba(0, 212, 255, 0.2);
+}
+
+.calendar-quantum-cell.has-appointment {
+  background: var(--neural-secondary);
+}
+
+/* Quantum Appointments */
+.appointment-quantum {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  border-radius: 15px;
+  padding: 1.2rem;
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  position: relative;
+}
+
+.appointment-quantum::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.8s ease;
+}
+
+.appointment-quantum:hover::before {
+  left: 100%;
+}
+
+.appointment-quantum:hover {
+  transform: scale(1.05) rotate(1deg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  z-index: 10;
+}
+
+.appointment-quantum.facial { background: var(--quantum-pink); }
+.appointment-quantum.massage { background: var(--quantum-green); }
+.appointment-quantum.manicure { background: var(--quantum-gold); }
+.appointment-quantum.hair { background: var(--quantum-blue); }
+
+.appointment-time {
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  font-family: var(--font-neural);
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.appointment-client {
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+  font-size: 1rem;
+}
+
+.appointment-service {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  font-style: italic;
+}
+
+.quantum-indicator {
+  font-size: 0.6rem;
+  opacity: 0.8;
+  margin-top: 0.3rem;
+  font-family: var(--font-neural);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Drag & Drop */
+.appointment-quantum.dragging {
+  opacity: 0.5;
+  transform: rotate(5deg) scale(1.05);
+  z-index: 1000;
+}
+
+.calendar-quantum-cell.drop-target {
+  background: var(--quantum-purple);
+  opacity: 0.3;
+}
+
+/* Neural Suggestions */
+.neural-suggestions {
+  position: fixed;
+  top: 50%;
+  left: 2rem;
+  transform: translateY(-50%);
+  background: var(--glass-bg);
+  backdrop-filter: blur(25px);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 2.5rem;
+  max-width: 350px;
+  box-shadow: var(--neural-glow), var(--quantum-shadow);
+  z-index: 50;
+}
+
+.suggestions-neural-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.neural-ai-icon {
+  width: 45px;
+  height: 45px;
+  background: var(--quantum-green);
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  animation: neuralSpin 4s linear infinite;
+}
+
+@keyframes neuralSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.suggestions-title {
+  font-weight: 700;
+  color: #ffffff;
+  font-family: var(--font-neural);
+  text-transform: uppercase;
+  font-size: 0.9rem;
+}
+
+.suggestions-subtitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+  font-family: var(--font-neural);
+  text-transform: uppercase;
+}
+
+.suggestion-quantum {
+  background: var(--neural-surface);
+  border-radius: 15px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  transition: all 0.4s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.suggestion-quantum::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.1), transparent);
+  transition: left 0.6s ease;
+}
+
+.suggestion-quantum:hover::before {
+  left: 100%;
+}
+
+.suggestion-quantum:hover {
+  background: var(--neural-accent);
+  border-color: var(--node-color);
+  transform: translateX(8px);
+}
+
+.suggestion-client {
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.suggestion-match {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.3rem;
+}
+
+.suggestion-ai {
+  font-size: 0.7rem;
+  color: var(--node-color);
+  margin-top: 0.3rem;
+  font-family: var(--font-neural);
+  text-transform: uppercase;
+}
+
+/* Quantum Actions */
+.quantum-actions {
+  position: fixed;
+  right: 2rem;
+  bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  z-index: 100;
+}
+
+.action-quantum {
+  width: 70px;
+  height: 70px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--quantum-shadow);
+}
+
+.action-quantum::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 22px;
+  z-index: -1;
+  filter: blur(10px);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.action-quantum:hover {
+  transform: scale(1.2) rotate(5deg);
+  box-shadow: var(--neural-glow), var(--quantum-shadow);
+}
+
+.action-quantum:hover::after {
+  opacity: 0.8;
+}
+
+.action-quantum.add { 
+  background: var(--quantum-green); 
+}
+.action-quantum.add::after { 
+  background: var(--quantum-green); 
+}
+
+.action-quantum.ai { 
+  background: var(--quantum-blue); 
+  animation: aiPulse 3s ease-in-out infinite;
+}
+.action-quantum.ai::after { 
+  background: var(--quantum-blue); 
+}
+
+@keyframes aiPulse {
+  0%, 100% { box-shadow: var(--quantum-shadow); }
+  50% { box-shadow: 0 0 30px rgba(79, 172, 254, 0.6), var(--quantum-shadow); }
+}
+
+.action-quantum.analytics { 
+  background: var(--quantum-gold); 
+}
+.action-quantum.analytics::after { 
+  background: var(--quantum-gold); 
+}
+
+.action-quantum.settings { 
+  background: var(--quantum-pink); 
+}
+.action-quantum.settings::after { 
+  background: var(--quantum-pink); 
+}
+
+/* Quantum Modal */
+.quantum-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(15px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.quantum-modal.active {
+  display: flex;
+  opacity: 1;
+}
+
+.modal-quantum-content {
+  background: var(--neural-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: 25px;
+  padding: 3rem;
+  max-width: 700px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--neural-glow), var(--quantum-shadow);
+  position: relative;
+  animation: modalQuantumAppear 0.6s ease;
+}
+
+@keyframes modalQuantumAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.modal-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #ffffff;
+  font-family: var(--font-neural);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.close-btn {
+  background: var(--neural-surface);
+  border: 1px solid var(--glass-border);
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: var(--quantum-pink);
+  color: white;
+}
+
+.btn-quantum-action {
+  padding: 1rem 1.5rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 15px;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+  font-family: var(--font-neural);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-quantum-action.edit {
+  background: var(--quantum-blue);
+}
+
+.btn-quantum-action.remind {
+  background: var(--quantum-green);
+}
+
+.btn-quantum-action.reschedule {
+  background: var(--quantum-gold);
+}
+
+.btn-quantum-action.ai-optimize {
+  background: var(--quantum-purple);
+}
+
+.btn-quantum-action.hologram {
+  background: var(--quantum-pink);
+}
+
+.btn-quantum-action.delete {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+}
+
+.btn-quantum-action:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* Quantum Notifications */
+.quantum-notification {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  background: var(--glass-bg);
+  backdrop-filter: blur(25px);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  padding: 2rem;
+  color: white;
+  font-weight: 600;
+  z-index: 10000;
+  box-shadow: var(--neural-glow), var(--quantum-shadow);
+  transform: translateX(120%);
+  transition: transform 0.5s ease;
+  max-width: 400px;
+  border-left: 4px solid var(--node-color);
+}
+
+.quantum-notification.show {
+  transform: translateX(0);
+}
+
+.quantum-notification.success { 
+  background: var(--quantum-green);
+  border-left-color: #43e97b;
+}
+.quantum-notification.warning { 
+  background: var(--quantum-gold);
+  border-left-color: #f6d365;
+}
+.quantum-notification.error { 
+  background: var(--quantum-pink);
+  border-left-color: #f093fb;
+}
+.quantum-notification.info { 
+  background: var(--quantum-blue);
+  border-left-color: #4facfe;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .quantum-actions,
+  .neural-suggestions {
+    display: none;
+  }
+  
+  .quantum-header {
+    padding: 1.5rem 2rem;
+  }
+  
+  .quantum-metrics {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .quantum-header {
+    flex-direction: column;
+    gap: 2rem;
+    margin: 1rem;
+    padding: 2rem;
+  }
+  
+  .week-nav {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .ai-command-center,
+  .quantum-calendar {
+    margin: 0 1rem 1rem;
+    padding: 2rem;
+  }
+
+  .quantum-metrics {
+    margin: 0 1rem 1rem;
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-neural-grid {
+    grid-template-columns: 100px repeat(7, 1fr);
+    font-size: 0.8rem;
+  }
+
+  .appointment-quantum {
+    font-size: 0.7rem;
+    padding: 0.8rem;
+  }
+
+  .quantum-title {
+    font-size: 2rem;
+  }
+  
+  .metric-value {
+    font-size: 2.5rem;
+  }
+  
+  .calendar-title {
+    font-size: 1.4rem;
+  }
+  
+  .neural-controls {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .neural-btn {
+    padding: 0.6rem 1rem;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .quantum-header {
+    padding: 1.5rem;
+  }
+  
+  .quantum-brand {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+  
+  .neural-logo {
+    width: 50px;
+    height: 50px;
+    font-size: 1.2rem;
+  }
+  
+  .quantum-title {
+    font-size: 1.5rem;
+  }
+  
+  .header-actions {
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+  }
+  
+  .view-toggle {
+    justify-content: center;
+  }
+  
+  .calendar-neural-grid {
+    grid-template-columns: 80px repeat(7, 1fr);
+    gap: 1px;
+  }
+  
+  .time-neural {
+    padding: 1rem 0.5rem;
+    font-size: 0.7rem;
+  }
+  
+  .day-quantum {
+    padding: 1rem 0.5rem;
+  }
+  
+  .day-name {
+    font-size: 0.8rem;
+  }
+  
+  .calendar-quantum-cell {
+    min-height: 80px;
+  }
+  
+  .appointment-quantum {
+    font-size: 0.6rem;
+    padding: 0.5rem;
+  }
+  
+  .quantum-modal .modal-quantum-content {
+    padding: 2rem;
+    width: 95%;
+  }
+}
+
+/* Loading Animations */
+@keyframes quantumLoad {
+  0% { opacity: 0; transform: translateY(30px) rotate(-5deg); }
+  100% { opacity: 1; transform: translateY(0) rotate(0deg); }
+}
+
+.quantum-header { 
+  animation: quantumLoad 0.8s ease; 
+  animation-delay: 0.1s; 
+  animation-fill-mode: both; 
+}
+
+.ai-command-center { 
+  animation: quantumLoad 0.8s ease; 
+  animation-delay: 0.2s; 
+  animation-fill-mode: both; 
+}
+
+.quantum-metrics > *:nth-child(1) { 
+  animation: quantumLoad 0.8s ease; 
+  animation-delay: 0.3s; 
+  animation-fill-mode: both; 
+}
+
+.quantum-metrics > *:nth-child(2) { 
+  animation: quantumLoad 0.8s ease; 
+  animation-delay: 0.4s; 
+  animation-fill-mode: both; 
+}
+
+.quantum-metrics > *:nth-child(3) { 
+  animation: quantumLoad 0.8s ease; 
+  animation-delay: 0.5s; 
+  animation-fill-mode: both; 
+}
+
+.quantum-metrics > *:nth-child(4) { 
+  animation: quantumLoad 0.8s ease; 
+  animation-delay: 0.6s; 
+  animation-fill-mode: both; 
+}
+
+.quantum-calendar { 
+  animation: quantumLoad 0.8s ease; 
+  animation-delay: 0.7s; 
+  animation-fill-mode: both; 
+}
+
+/* Additional Quantum Effects */
+@keyframes quantumPulse {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.1; }
+  50% { transform: scale(1.1) rotate(180deg); opacity: 0.2; }
+}
+
+/* Scroll Effects */
+.quantum-app::-webkit-scrollbar {
+  width: 8px;
+}
+
+.quantum-app::-webkit-scrollbar-track {
+  background: var(--neural-primary);
+}
+
+.quantum-app::-webkit-scrollbar-thumb {
+  background: var(--quantum-purple);
+  border-radius: 4px;
+}
+
+.quantum-app::-webkit-scrollbar-thumb:hover {
+  background: var(--quantum-blue);
+}
+
+/* Focus States */
+.neural-btn:focus,
+.btn-quantum:focus,
+.action-quantum:focus,
+.btn-quantum-action:focus {
+  outline: 2px solid var(--node-color);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background: var(--quantum-purple);
+  color: white;
+}
+
+/* Print Styles */
+@media print {
+  .quantum-app {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .neural-network,
+  .quantum-particles,
+  .quantum-actions,
+  .neural-suggestions {
+    display: none !important;
+  }
+  
+  .quantum-header,
+  .ai-command-center,
+  .quantum-calendar {
+    background: white !important;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+  }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  :root {
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.3);
+    --neural-glow: 0 0 20px rgba(0, 212, 255, 0.8);
+  }
+  
+  .metric-quantum,
+  .quantum-header,
+  .ai-command-center,
+  .quantum-calendar {
+    border-width: 2px;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .neural-node,
+  .particle,
+  .neural-ai-icon {
+    animation: none !important;
+  }
+}
+
+/* Dark Mode Support (già implementato) */
+@media (prefers-color-scheme: light) {
+  /* Il calendario quantum è ottimizzato per dark mode */
+  /* Mantieni i colori attuali anche in light mode */
+}
+
+/* Custom Properties per JavaScript */
+.quantum-app[data-quantum-system-ready="true"] {
+  --system-status: "ready";
+}
+
+.quantum-app[data-quantum-system-ready="true"] .quantum-header::before {
+  animation-duration: 2s;
+}
+
+/* Utility Classes */
+.quantum-hidden {
+  display: none !important;
+}
+
+.quantum-visible {
+  display: block !important;
+}
+
+.quantum-fade-in {
+  animation: quantumLoad 0.6s ease forwards;
+}
+
+.quantum-fade-out {
+  animation: quantumLoad 0.6s ease reverse forwards;
+}
+
+.quantum-glow {
+  box-shadow: var(--neural-glow) !important;
+}
+
+.quantum-shadow {
+  box-shadow: var(--quantum-shadow) !important;
+}
+
+.neural-text {
+  font-family: var(--font-neural) !important;
+}
+
+.quantum-text {
+  background: var(--quantum-purple);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animation Classes per JavaScript */
+.quantum-shake {
+  animation: quantumShake 0.5s ease-in-out;
+}
+
+@keyframes quantumShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.quantum-bounce {
+  animation: quantumBounce 0.8s ease-in-out;
+}
+
+@keyframes quantumBounce {
+  0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
 }
-.animate-iconFloat {
-  animation: iconFloat 2.5s ease-in-out infinite;
-}
-/* === Fine Animazione Icone === */
 
-/* === Glassmorphism per Feature Cards === */
-.glassmorphism-feature-card {
-  @apply bg-white/10 backdrop-blur-[30px] border border-white/20 rounded-[40px] p-10 shadow-lg;
-}
-/* === Fine Glassmorphism Feature Cards === */
-
-/* === Glassmorphism per Feature Buttons === */
-.glassmorphism-feature-btn {
-  @apply bg-white/10 border-2 border-white/20 transition-all duration-400;
-}
-/* === Fine Glassmorphism Feature Buttons === */
-
-/* === Glassmorphism per Activity Cards === */
-.glassmorphism-activity-card {
-  @apply bg-white/10 backdrop-blur-[30px] border border-white/20 rounded-[30px] p-8 shadow-lg transition-all duration-500 hover:scale-105 hover:-translate-y-2;
-}
-/* === Fine Glassmorphism Activity Cards === */
-
-/* === Badge Gradient per Activity Status === */
-.badge-gradient-green {
-  @apply bg-gradient-to-r from-green-400 to-emerald-500 text-black px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide;
-}
-.badge-gradient-blue {
-  @apply bg-gradient-to-r from-blue-400 to-cyan-500 text-black px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide;
-}
-.badge-gradient-pink {
-  @apply bg-gradient-to-r from-purple-400 to-pink-500 text-black px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide;
-}
-.badge-gradient-orange {
-  @apply bg-gradient-to-r from-orange-400 to-red-500 text-black px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide;
-}
-.badge-gradient-cyan {
-  @apply bg-gradient-to-r from-teal-400 to-cyan-500 text-black px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide;
-}
-/* === Fine Badge Gradient === */
-
-/* === Glassmorphism per Metric Cards === */
-.glassmorphism-metric-card {
-  @apply bg-white/10 backdrop-blur-[30px] border border-white/20 rounded-[40px] p-10 shadow-lg transition-all duration-500 hover:scale-105 hover:-translate-y-3;
-}
-/* === Fine Glassmorphism Metric Cards === */
-
-/* === Animazioni per Metriche === */
-@keyframes metricBar {
-  0% { width: 0; }
-  100% { width: 100%; }
-}
-.animate-metricBar {
-  animation: metricBar 2s cubic-bezier(0.23,1,0.32,1) both;
-}
-@keyframes metricCircle {
-  0% { stroke-dasharray: 0 100; }
-  100% { stroke-dasharray: 85 100; }
-}
-.animate-metricCircle {
-  animation: metricCircle 2s cubic-bezier(0.23,1,0.32,1) both;
-}
-/* === Fine Animazioni Metriche === */
-
-/* === Glassmorphism per CTA Buttons === */
-.glassmorphism-cta-btn {
-  @apply shadow-2xl transition-all duration-500 hover:scale-110;
-}
-/* === Fine Glassmorphism CTA Buttons === */
-
-/* === Glassmorphism per CTA Box === */
-.glassmorphism-cta-box {
-  @apply bg-white/5 backdrop-blur-[30px] border border-white/20 rounded-[40px] shadow-lg;
-}
-/* === Fine Glassmorphism CTA Box === */
-
-/* === Card più larghe e basse === */
-.glassmorphism-stat-card,
-.glassmorphism-feature-card,
-.glassmorphism-metric-card {
-  min-height: 180px;
-  width: 100%;
-  padding-left: 2.5rem; /* px-10 */
-  padding-right: 2.5rem;
-  padding-top: 1.5rem; /* py-6 */
-  padding-bottom: 1.5rem;
-}
-.glassmorphism-activity-card {
-  min-height: 160px;
-  width: 100%;
-  padding-left: 2rem; /* px-8 */
-  padding-right: 2rem;
-  padding-top: 1.25rem; /* py-5 */
-  padding-bottom: 1.25rem;
-}
-.glassmorphism-stat-card .animate-iconFloat,
-.glassmorphism-feature-card .animate-iconFloat,
-.glassmorphism-metric-card .animate-iconFloat,
-.glassmorphism-activity-card .animate-iconFloat {
-  margin-bottom: 1rem; /* mb-4 */
-}
-/* === Fine card larghe e basse === */
-
-/* Rimosso overlay scuro body::after su richiesta dell'utente */
-
-@theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+.quantum-rotate {
+  animation: quantumRotate 1s linear;
 }
 
-.dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+@keyframes quantumRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-
-.service-dropdown {
-  position: relative;
-  z-index: 50; /* Assicura che il dropdown sia sopra altri elementi */
-}
-
-.service-dropdown .dropdown-content {
-  position: absolute;
-  z-index: 9999; /* Z-index molto alto per il contenuto del dropdown */
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
-
-/* Soluzione 2: Se usi shadcn/ui Select component */
-[data-radix-select-viewport] {
-  z-index: 9999 !important;
-}
-
-[data-radix-select-content] {
-  z-index: 9999 !important;
-}
-
-/* Soluzione specifica per il form di prenotazione */
-.booking-form [data-radix-select-content] {
-  z-index: 9999 !important;
-}
+/* ========================================== 
+   FINE QUANTUM CALENDAR STYLES
+   ========================================== */

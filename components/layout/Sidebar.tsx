@@ -121,7 +121,8 @@ export default function ModernSidebar() {
       <aside
         className={`
           fixed top-0 left-0 h-full w-64 
-          bg-white/10 backdrop-blur-xl border-r border-white/20
+          bg-gradient-to-b from-purple-700 via-purple-600 to-violet-800
+          backdrop-blur-xl border-r border-white/20
           transform transition-transform duration-300 z-40
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           md:translate-x-0
